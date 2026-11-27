@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<title>CyberShield — Pruebas con Snyk</title>
+<style>
+:root{--bg:#070b14;--s:#111a2e;--b:#1f2c47;--t:#e8eefc;--t2:#b4c0da;--c:#22d3ee}
+@media (prefers-color-scheme: light){:root{--bg:#f6f8fc;--s:#fff;--b:#d8deea;--t:#0f172a;--t2:#334155;--c:#0e7490}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:32px 16px 64px}h1{font-size:1.9rem;margin:0 0 16px}h2{margin-top:36px;border-bottom:1px solid var(--b);padding-bottom:6px}
+p,blockquote,li{color:var(--t2)}code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88em;background:var(--s);border:1px solid var(--b);padding:1px 5px;border-radius:5px}
+pre{background:var(--s);border:1px solid var(--b);border-radius:10px;padding:14px;overflow-x:auto}pre code{border:0;padding:0;background:none}
+blockquote{margin:16px 0;padding:12px 16px;border-left:4px solid var(--c);background:var(--s);border-radius:0 10px 10px 0}
+.tw{overflow-x:auto;margin:12px 0}table{border-collapse:collapse;width:100%;font-size:.92rem;background:var(--s)}th,td{border:1px solid var(--b);padding:8px 10px;text-align:left;vertical-align:top}th{color:var(--c)}a{color:var(--c)}
+</style></head><body><main>
+<h1>CyberShield — Pruebas de seguridad con Snyk (paso a paso)</h1>
+<h2>¿Qué es Snyk y qué analiza?</h2>
+<p>Snyk es una herramienta de <strong>pruebas de seguridad</strong> que busca vulnerabilidades. En CyberShield usaremos dos de sus análisis:</p>
+<div class="tw"><table><thead><tr><th>Análisis</th><th>Comando</th><th>Tipo de prueba</th><th>Qué revisa en CyberShield</th></tr></thead><tbody><tr><td><strong>Snyk Open Source</strong></td><td><code>snyk test</code></td><td>SCA (análisis de composición del software)</td><td>Las librerías del <code>package.json</code> / <code>package-lock.json</code>, comparadas con una base de datos de vulnerabilidades conocidas (CVE)</td></tr><tr><td><strong>Snyk Code</strong></td><td><code>snyk code test</code></td><td>SAST (análisis estático del código)</td><td>El código fuente: <code>src/cybershield.js</code> (el juego), <code>servidor.js</code>, <code>rendimiento/</code>, <code>pruebas/</code>, <code>herramientas/</code>. Busca XSS, inyecciones, secretos, criptografía débil, etc.</td></tr></tbody></table></div>
+<h2>Paso 0. Prueba de cobertura: que Snyk analice TODO el código</h2>
+<p>Antes de pasar Snyk hay que comprobar <strong>qué código va a ver</strong>. Al principio, toda la lógica del juego (1 482 líneas de JavaScript) estaba metida dentro de <code>CyberShield.html</code>, y Snyk no la trataba como código JavaScript completo.</p>
+<p><strong>Solución aplicada:</strong> el código fuente se separó en la carpeta <code>src/</code>:</p>
+<div class="tw"><table><thead><tr><th>Archivo</th><th>Contenido</th></tr></thead><tbody><tr><td><code>src/cybershield.js</code></td><td>Toda la lógica del juego (lo que Snyk Code analiza)</td></tr><tr><td><code>src/cybershield.css</code></td><td>Los estilos</td></tr><tr><td><code>src/plantilla.html</code></td><td>La estructura HTML</td></tr></tbody></table></div>
+<p>El comando <code>npm run construir</code> vuelve a juntarlos en <code>CyberShield.html</code>, de un solo archivo, y recalcula el hash de la CSP. El juego funciona igual que antes.</p>
+<p><strong>Ejecuta la prueba de cobertura:</strong></p>
+<pre><code>npm run snyk:cobertura</code></pre>
+<p>Genera <code>seguridad/cobertura-snyk.html</code> con el inventario de todos los archivos: cuáles analiza Snyk Code, cuáles Snyk Open Source, cuáles otro producto, cuáles no son soportados y por qué. La prueba falla si la cobertura del JavaScript baja del 100 %.</p>
+<div class="tw"><table><thead><tr><th>Medición</th><th>Antes</th><th>Después</th></tr></thead><tbody><tr><td>Cobertura del código JavaScript</td><td><strong>63,9 %</strong> (1 482 líneas solo dentro de HTML)</td><td><strong>100 %</strong> (todo en archivos <code>.js</code>)</td></tr><tr><td>Líneas de JavaScript analizadas por Snyk Code</td><td>2 623</td><td>4 158</td></tr></tbody></table></div>
+<p>En la carpeta <code>seguridad</code> quedan los dos informes: <code>cobertura-snyk-ANTES.html</code> y <code>cobertura-snyk.html</code> (después).</p>
+<p><strong>¿Por qué algunos archivos aparecen como "no soportado"?</strong> Snyk Code solo analiza código de programación (JavaScript, TypeScript, Java, Python…). No analiza:</p>
+<ul><li>Scripts <code>.bat</code> y <code>.sh</code>: solo lanzan comandos del proyecto.</li><li>CSS: no tiene lógica ejecutable.</li><li>Configuración YAML de Prometheus y Grafana, y el plan <code>.jmx</code> de JMeter.</li><li>El JSON del panel de Grafana.</li></ul>
+<p>No es un fallo de cobertura: son tipos de archivo que esa herramienta no cubre. Las imágenes Docker del <code>docker-compose.yml</code> se analizan con <code>snyk container test</code> (ver "Opciones útiles").</p>
+<p><strong><code>CyberShield.html</code> aparece como "excluido" en <code>.snyk</code></strong> porque es el archivo construido: su código ya se analiza en <code>src/</code>. Así no salen los mismos hallazgos dos veces.</p>
+<h2>Resultado del análisis de vulnerabilidades (27/11/2026)</h2>
+<p>El informe completo y explicado está en <strong><code>seguridad/INFORME-SNYK.html</code></strong>.</p>
+<div class="tw"><table><thead><tr><th></th><th>Primer análisis</th><th>Tras corregir</th></tr></thead><tbody><tr><td>Dependencias (<code>snyk test --dev</code>, 2 paquetes)</td><td>0 vulnerabilidades</td><td>0 vulnerabilidades</td></tr><tr><td>Código (<code>snyk code test</code>, 37 <code>.js</code> + 7 <code>.html</code>)</td><td>11 hallazgos (0 altos, 2 medios, 9 bajos)</td><td>10 hallazgos (0 altos, 1 medio, 9 bajos)</td></tr><tr><td>Vulnerabilidades reales pendientes</td><td>3</td><td><strong>0</strong></td></tr><tr><td>Hallazgos en el código del juego (<code>src/cybershield.js</code>)</td><td>0</td><td>0</td></tr></tbody></table></div>
+<p>Correcciones aplicadas:</p>
+<ul><li><strong>Sin límite de peticiones (DoS), MEDIUM:</strong> limitador por IP (30 peticiones/s, ráfagas de 60, respuesta 429) y HTML en memoria; ninguna petición lee el disco. Se configura con las variables <code>RATE_LIMIT</code> y <code>RATE_LIMIT_LOCAL</code>.</li><li><strong>Path traversal (×2), LOW:</strong> la herramienta <code>md-a-html.js</code> solo acepta una lista cerrada de documentos.</li><li><strong>TLS inseguro en una prueba, LOW:</strong> apareció en un análisis intermedio; ahora la prueba verifica el certificado.</li><li><strong>HTTP en lugar de HTTPS, MEDIUM:</strong> el servidor admite HTTPS con <code>TLS_CERT</code> y <code>TLS_KEY</code>. El modo HTTP queda solo para uso local, como <strong>riesgo aceptado y mitigado</strong>.</li></ul>
+<p>Los 9 hallazgos LOW restantes son <strong>falsos positivos</strong> en el código de pruebas (conexiones al servidor local y contraseñas ficticias del medidor de fortaleza).</p>
+<h2>Opción rápida (todo automático)</h2>
+<p>Si ya tienes Node.js instalado:</p>
+<ul><li><strong>Windows:</strong> doble clic en <code>seguridad\ejecutar-snyk.bat</code></li><li><strong>Mac/Linux:</strong> <code>sh seguridad/ejecutar-snyk.sh</code></li></ul>
+<p>El script primero ejecuta la <strong>prueba de cobertura</strong> (paso 0); después instala Snyk si no lo tienes, te pide iniciar sesión, ejecuta los dos análisis y abre los informes HTML. Aun así, <strong>antes tienes que hacer los pasos 1 y 4</strong> (crear la cuenta y activar Snyk Code).</p>
+<p>A continuación está el paso a paso manual, que conviene conocer para explicarlo en tu trabajo.</p>
+<h2>Paso 1. Crear una cuenta gratuita</h2>
+<ol><li>Entra en <a href="https://app.snyk.io/login">https://app.snyk.io/login</a></li><li>Regístrate con <strong>GitHub</strong>, <strong>Google</strong> o tu correo. El plan <strong>Free</strong> es suficiente.</li><li>Si te pregunta qué quieres integrar, puedes elegir <strong>CLI</strong> u omitir ese paso.</li></ol>
+<blockquote>El plan gratuito tiene un número limitado de análisis al mes, más que suficiente para este proyecto.</blockquote>
+<h2>Paso 2. Comprobar que tienes Node.js</h2>
+<p>Abre una terminal (en Windows: tecla Windows → escribe <strong>cmd</strong> → Enter) y escribe:</p>
+<pre><code>node --version</code></pre>
+<p>Debe mostrar <code>v18</code> o superior. Si no, instálalo desde <a href="https://nodejs.org">https://nodejs.org</a> (versión LTS).</p>
+<h2>Paso 3. Instalar Snyk CLI y conectarlo a tu cuenta</h2>
+<pre><code>npm install -g snyk snyk-to-html</code></pre>
+<pre><code>snyk --version</code></pre>
+<pre><code>snyk auth</code></pre>
+<p><code>snyk auth</code> abre el navegador: pulsa <strong>Authenticate</strong> y vuelve a la terminal. Debe aparecer *"Your account has been authenticated"*.</p>
+<blockquote><strong>Windows PowerShell:</strong> si sale un error de "ejecución de scripts deshabilitada", usa <strong>cmd</strong> en lugar de PowerShell o ejecuta <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code>.</blockquote>
+<h2>Paso 4. Activar Snyk Code (solo la primera vez)</h2>
+<p>Snyk Code viene desactivado en las cuentas nuevas:</p>
+<ol><li>Entra en <a href="https://app.snyk.io">https://app.snyk.io</a></li><li>Abajo a la izquierda: <strong>Settings</strong> (⚙) → <strong>Snyk Code</strong>.</li><li>Activa <strong>Enable Snyk Code</strong> y pulsa <strong>Save changes</strong>.</li></ol>
+<p>Si te lo saltas, <code>snyk code test</code> mostrará: *"Snyk Code is not enabled for your organization"*.</p>
+<h2>Paso 5. Ir a la carpeta del proyecto</h2>
+<p>Descomprime <code>CyberShield-proyecto.zip</code> y entra en la carpeta <code>cybershield</code>:</p>
+<pre><code>cd ruta/donde/descomprimiste/cybershield</code></pre>
+<p>Debes estar en la carpeta donde están <code>package.json</code> y <code>package-lock.json</code>. En Windows, un truco: abre la carpeta en el Explorador, escribe <code>cmd</code> en la barra de direcciones y pulsa Enter.</p>
+<h2>Paso 6. Prueba 1: dependencias (Snyk Open Source)</h2>
+<pre><code>snyk test --dev</code></pre>
+<p>(<code>--dev</code> incluye también las dependencias de desarrollo; sin él Snyk solo mira las de producción, y CyberShield no tiene ninguna.)</p>
+<p>Qué hace: lee <code>package-lock.json</code>, identifica cada librería y su versión exacta (incluidas las dependencias de las dependencias) y las compara con la base de datos de vulnerabilidades de Snyk.</p>
+<p>Resultado esperado para CyberShield:</p>
+<pre><code>✔ Tested 2 dependencies for known issues, no vulnerable paths found.</code></pre>
+<p>El juego <strong>no usa ninguna librería externa</strong>. La única dependencia es <code>playwright</code>, y solo se usa para las pruebas automáticas (es <code>devDependency</code>). Para analizar únicamente lo que llega a producción:</p>
+<pre><code>snyk test --dev=false</code></pre>
+<h2>Paso 7. Prueba 2: código fuente (Snyk Code)</h2>
+<pre><code>snyk code test</code></pre>
+<p>Qué hace: sube el código de forma cifrada a Snyk, lo analiza con reglas de seguridad y muestra cada hallazgo con su severidad, archivo, línea y explicación. Los hallazgos del juego aparecerán en <strong><code>src/cybershield.js</code></strong>.</p>
+<p>El archivo <code>.snyk</code> del proyecto excluye <code>CyberShield.html</code> (es el archivo construido; su código está en <code>src/</code>) y <code>rendimiento/resultados/</code>. Esa carpeta contiene los informes generados por k6 y JMeter, que traen librerías de terceros minificadas (jQuery, Bootstrap…) que no son código del juego. <strong>El juego, el servidor y las pruebas sí se analizan.</strong></p>
+<h2>Paso 8. Generar los informes HTML (evidencia para tu trabajo)</h2>
+<pre><code>snyk test --json-file-output=seguridad/snyk-dependencias.json</code></pre>
+<pre><code>snyk code test --json-file-output=seguridad/snyk-codigo.json</code></pre>
+<pre><code>snyk-to-html -i seguridad/snyk-dependencias.json -o seguridad/snyk-dependencias.html</code></pre>
+<pre><code>snyk-to-html -i seguridad/snyk-codigo.json -o seguridad/snyk-codigo.html</code></pre>
+<p>Abre los <code>.html</code> de la carpeta <code>seguridad</code> con doble clic.</p>
+<blockquote>Usa <code>-i archivo.json</code> en lugar de <code>snyk ... --json | snyk-to-html</code>: en PowerShell la tubería cambia la codificación y el informe sale vacío o con error.</blockquote>
+<p>Atajos ya configurados en el proyecto:</p>
+<pre><code>npm run snyk:dependencias</code></pre>
+<pre><code>npm run snyk:codigo</code></pre>
+<pre><code>npm run snyk:informes</code></pre>
+<blockquote>Si al terminar un análisis ves <code>npm ERR!</code> o <code>exit code 1</code>, <strong>es normal</strong>: Snyk devuelve código 1 cuando encuentra algún hallazgo, aunque sea de severidad baja. Revisa el informe.</blockquote>
+<h2>Paso 9 (opcional). Monitorización continua en la web de Snyk</h2>
+<pre><code>snyk monitor --project-name=cybershield</code></pre>
+<p>Sube una "foto" de las dependencias a tu panel en <a href="https://app.snyk.io.">https://app.snyk.io.</a> Snyk te avisará por correo si en el futuro se descubre una vulnerabilidad nueva en alguna de ellas. Es el equivalente en seguridad a la observabilidad.</p>
+<h2>Paso 10 (opcional). Analizar el repositorio desde GitHub</h2>
+<p>Si subes el proyecto a GitHub:</p>
+<ol><li>En <a href="https://app.snyk.io">https://app.snyk.io</a> pulsa <strong>Add project</strong> → <strong>GitHub</strong>.</li><li>Autoriza a Snyk y elige el repositorio.</li><li>Snyk analizará dependencias y código automáticamente en cada cambio y puede abrir *pull requests* con las correcciones.</li></ol>
+<h2>Opciones útiles</h2>
+<div class="tw"><table><thead><tr><th>Opción</th><th>Qué hace</th></tr></thead><tbody><tr><td><code>--severity-threshold=high</code></td><td>Muestra solo hallazgos altos o críticos</td></tr><tr><td><code>--sarif-file-output=archivo.sarif</code></td><td>Formato SARIF (lo entienden GitHub, VS Code y SonarQube)</td></tr><tr><td><code>snyk ignore --id=ID --reason="motivo" --expiry=2027-01-01</code></td><td>Marca un hallazgo de dependencias como aceptado y lo justifica en <code>.snyk</code></td></tr><tr><td><code>snyk container test prom/prometheus:v2.54.1</code></td><td>Analiza las imágenes Docker de Prometheus/Grafana usadas en la observabilidad</td></tr></tbody></table></div>
+<h2>Cómo interpretar los resultados</h2>
+<p>Cada hallazgo indica:</p>
+<ul><li><strong>Severidad:</strong> Critical, High, Medium o Low.</li><li><strong>Tipo:</strong> por ejemplo *Cross-site Scripting (XSS)* o *Cleartext Transmission*.</li><li><strong>Ubicación:</strong> archivo y línea.</li><li><strong>Flujo de datos:</strong> de dónde viene el dato peligroso (*source*) y dónde se usa (*sink*).</li></ul>
+<p>Para cada uno, decide:</p>
+<ol><li><strong>¿Es real?</strong> ¿Un atacante podría explotarlo en el contexto de CyberShield?</li><li><strong>Si es real:</strong> corrígelo y vuelve a ejecutar el análisis.</li><li><strong>Si es un falso positivo:</strong> documenta por qué. En Snyk Code puedes ignorarlo desde la web (*Ignore* → motivo).</li></ol>
+<h3>Hallazgos que podrían aparecer en CyberShield y cómo justificarlos</h3>
+<div class="tw"><table><thead><tr><th>Posible hallazgo</th><th>Dónde</th><th>¿Es real?</th><th>Justificación</th></tr></thead><tbody><tr><td>*Cleartext Transmission of Sensitive Information* (HTTP sin TLS)</td><td><code>servidor.js</code></td><td>Bajo riesgo</td><td>El servidor escucha solo en <code>127.0.0.1</code> (tu propio equipo). En producción iría detrás de un proxy con HTTPS.</td></tr><tr><td>*Use of Insecure Random Values* (<code>Math.random</code>)</td><td><code>src/cybershield.js</code>, <code>rendimiento/k6</code></td><td>No</td><td>En el juego es solo un respaldo si el navegador no tiene <code>crypto.getRandomValues</code>, y sirve para barajar preguntas. En k6 simula tiempos de espera. Nada de seguridad depende de ello.</td></tr><tr><td>*Cross-site Scripting* / *DOM XSS*</td><td><code>pruebas/16-penetracion.test.js</code></td><td>No</td><td>Son <strong>cargas de ataque intencionadas</strong> de las pruebas de penetración (<code>&lt;script&gt;</code>, <code>onerror=</code>). Se usan para atacar el juego y demostrar que está protegido.</td></tr><tr><td>*Hardcoded Credentials* / *Hardcoded Secret*</td><td><code>pruebas/03-sistema.test.js</code>, <code>docker-compose.yml</code></td><td>No</td><td><code>secreto-prueba</code> es un token de prueba, y <code>admin/admin</code> es la contraseña inicial de Grafana en local (Grafana obliga a cambiarla en el primer acceso).</td></tr><tr><td>*Path Traversal*</td><td><code>rendimiento/ejecutar.js</code>, <code>herramientas/</code></td><td>No</td><td>Las rutas se construyen con valores fijos o argumentos del propio usuario en su terminal, no con datos de la red. El servidor solo sirve un archivo fijo.</td></tr><tr><td>*Information Exposure* (<code>X-Powered-By</code> u otras)</td><td><code>servidor.js</code></td><td>No</td><td>El servidor no envía <code>X-Powered-By</code>. <code>/metrics</code> puede protegerse con <code>METRICS_TOKEN</code>.</td></tr></tbody></table></div>
+<p>Si te sale algún hallazgo distinto, o alguno que no sepas justificar, copia el resultado y lo revisamos.</p>
+<h2>Qué controles de seguridad del proyecto respaldan el resultado</h2>
+<ul><li>CSP estricta con hash SHA-256 (sin <code>unsafe-inline</code> para scripts).</li><li>Sin <code>innerHTML</code>, <code>eval</code>, <code>document.write</code> ni <code>new Function</code>: todo el DOM se construye con <code>textContent</code>. Lo verifica la prueba 15.</li><li>Validación de esquema de todo lo que se lee de <code>localStorage</code>, inmune a <code>__proto__</code>. Lo verifica la prueba 16.</li><li>Servidor sin path traversal, que solo acepta GET/HEAD, con cabeceras de seguridad y token opcional en <code>/metrics</code>.</li><li><code>npm audit</code>: <strong>0 vulnerabilidades</strong>.</li></ul>
+<h2>Problemas frecuentes</h2>
+<div class="tw"><table><thead><tr><th>Mensaje</th><th>Solución</th></tr></thead><tbody><tr><td><code>'snyk' no se reconoce como un comando</code></td><td>Cierra y vuelve a abrir la terminal tras instalar, o usa <code>npx snyk test</code></td></tr><tr><td><code>Authentication failed</code> / <code>401</code></td><td>Ejecuta <code>snyk auth</code> de nuevo</td></tr><tr><td><code>Snyk Code is not enabled for your organization</code></td><td>Paso 4: Settings → Snyk Code → Enable</td></tr><tr><td><code>Could not detect supported target files</code></td><td>No estás en la carpeta del proyecto (Paso 5)</td></tr><tr><td><code>Missing node_modules folder</code></td><td>Asegúrate de que existe <code>package-lock.json</code> o ejecuta <code>npm install</code></td></tr><tr><td>El informe HTML sale vacío</td><td>Usa <code>snyk-to-html -i archivo.json</code> en lugar de la tubería `</td><td>`</td></tr><tr><td>Detrás de un proxy (red del colegio o la empresa)</td><td>Define <code>HTTPS_PROXY=<a href="http://proxy:puerto</code>">http://proxy:puerto</code></a> antes de ejecutar Snyk</td></tr></tbody></table></div>
+<h2>Qué entregar como evidencia</h2>
+<ol><li>Captura de la terminal con <code>snyk test</code> y <code>snyk code test</code>.</li><li>Los informes <code>seguridad/snyk-dependencias.html</code> y <code>seguridad/snyk-codigo.html</code>.</li><li>La tabla de hallazgos con tu análisis: real o falso positivo, y la justificación.</li><li>Opcional: captura del proyecto en el panel de <a href="https://app.snyk.io">https://app.snyk.io</a> tras <code>snyk monitor</code>.</li></ol>
+</main></body></html>

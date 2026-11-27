@@ -1,0 +1,44 @@
+CYBERSHIELD — CÓMO VERLO Y EJECUTARLO
+=====================================
+
+1) SOLO JUGAR (no necesitas instalar nada)
+   - Haz doble clic en CyberShield.html  -> se abre en tu navegador.
+
+2) VER LA GUÍA DE LAS 27 PRUEBAS
+   - Haz doble clic en GUIA.html
+
+3) EJECUTAR LAS 27 PRUEBAS (necesitas Node.js 18 o superior: https://nodejs.org)
+   - Windows: doble clic en ejecutar-pruebas.bat
+   - Mac/Linux: abre una terminal en esta carpeta y escribe:  sh ejecutar-pruebas.sh
+   (la primera vez descarga Playwright y Chromium, tarda unos minutos)
+
+4) SERVIDOR LOCAL CON CABECERAS DE SEGURIDAD (opcional)
+   - Windows: doble clic en iniciar-servidor.bat
+   - Mac/Linux: sh iniciar-servidor.sh
+   - Luego abre http://127.0.0.1:8080/
+
+IMPORTANTE: el código fuente está en la carpeta src/. Si lo modificas ejecuta "npm run construir",
+que regenera CyberShield.html y su política de seguridad (CSP). Si no, el juego no arrancará.
+
+5) PRUEBAS DE RENDIMIENTO Y OBSERVABILIDAD (k6 / JMeter)
+   - Abre GUIA-RENDIMIENTO.html: explica todo paso a paso con los resultados obtenidos.
+   - k6:     instala k6 (https://grafana.com/docs/k6/latest/set-up/install-k6/) y ejecuta
+             Windows: rendimiento\ejecutar-k6.bat carga      Mac/Linux: sh rendimiento/ejecutar-k6.sh carga
+             (escenarios: humo, carga, estres, pico, resistencia, capacidad)
+   - JMeter: instala Java 8+ y JMeter (https://jmeter.apache.org/download_jmeter.cgi) y ejecuta
+             Windows: rendimiento\ejecutar-jmeter.bat 100 60      Mac/Linux: sh rendimiento/ejecutar-jmeter.sh 100 60
+   - Los informes (HTML) quedan en rendimiento\resultados
+   - Panel en vivo mientras corre una prueba: http://127.0.0.1:8080/observabilidad
+
+6) PRUEBAS DE SEGURIDAD CON SNYK
+   - Abre GUIA-SNYK.html (paso a paso completo).
+   - Rápido: Windows -> doble clic en seguridad\ejecutar-snyk.bat   |   Mac/Linux -> sh seguridad/ejecutar-snyk.sh
+     (antes crea tu cuenta en https://app.snyk.io y activa Snyk Code en Settings -> Snyk Code)
+   - Prueba de cobertura (qué código ve Snyk):  npm run snyk:cobertura  -> seguridad\cobertura-snyk.html
+
+7) COBERTURA DE CÓDIGO Y COVERALLS
+   - Abre GUIA-COVERALLS.html (paso a paso completo).
+   - Ver la cobertura en tu PC:  npm install  ->  npx playwright install chromium  ->  npm run cobertura
+     y abre coverage\index.html (también se genera coverage\lcov.info, que es lo que se sube a Coveralls).
+   - Subida automática a Coveralls: sube el proyecto a GitHub y activa el repositorio en https://coveralls.io
+     (el flujo .github\workflows\cobertura.yml ya está incluido).

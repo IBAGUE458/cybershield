@@ -1,0 +1,32 @@
+# Stack de observabilidad para CyberShield: Prometheus (métricas + alertas) y Grafana (paneles).
+# 1) Arranca el servidor accesible desde Docker:   HOST=0.0.0.0 node servidor.js 8080
+# 2) docker compose -f observabilidad/docker-compose.yml up -d
+# 3) Grafana: http://localhost:3000  (admin / admin, te pedirá cambiarla)   Prometheus: http://localhost:9090
+# Los puertos se publican solo en 127.0.0.1 (no quedan expuestos a la red).
+services:
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-remote-write-receiver   # permite que k6 envíe sus métricas (-o experimental-prometheus-rw)
+      - --storage.tsdb.retention.time=7d
+    ports: ["127.0.0.1:9090:9090"]
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alertas.yml:/etc/prometheus/alertas.yml:ro
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    ports: ["127.0.0.1:3000:3000"]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on: [prometheus]
+    restart: unless-stopped

@@ -1,0 +1,1564 @@
+// CyberShield — lógica del juego. Fuente: se incrusta en CyberShield.html con `npm run construir`.
+/*
+ * CyberShield — lógica del escape room.
+ * Principios de seguridad aplicados:
+ *  - Modo estricto y todo encapsulado en una IIFE (sin variables globales salvo la API de solo lectura).
+ *  - Nunca se usa innerHTML / eval / document.write / new Function: el DOM se construye con
+ *    createElement + textContent, por lo que ningún dato del usuario puede inyectar HTML (XSS).
+ *  - Todo lo que se lee de localStorage se valida contra un esquema y se acota (clamp).
+ *  - Las contraseñas escritas en el nivel de contraseñas NUNCA se guardan ni se registran.
+ *  - Política CSP con hash SHA-256: solo este script puede ejecutarse.
+ */
+(function () {
+  'use strict';
+
+  /* ======================= CONSTANTES ======================= */
+  var STORAGE_KEY = 'cybershield.v1';
+  var NAME_MAX = 48;
+  var HISTORY_MAX = 200;
+  var STORAGE_MAX_CHARS = 200000;
+  var HINT_COST = 5;
+  var FAIL_COST = 5;
+  var LEVEL_POINTS = Object.freeze([30, 30, 40]);
+  var LEVEL_TIME = Object.freeze([0, 90, 120]);
+  var LEVEL_NAMES = Object.freeze(['Básico', 'Intermedio', 'Avanzado']);
+  var MAX_TIME = 360000;
+  var RESULTS = Object.freeze({ ok: 'Superado', fail: 'Fallido', timeout: 'Tiempo agotado' });
+  var COMMON_WORDS = Object.freeze(['password', 'contraseña', 'contrasena', '123456', 'qwerty', 'admin', 'abc123', 'letmein', 'iloveyou', 'cybershield', '111111', 'welcome']);
+
+  function deepFreeze(obj) {
+    Object.keys(obj).forEach(function (k) {
+      var v = obj[k];
+      if (v && typeof v === 'object' && !Object.isFrozen(v)) deepFreeze(v);
+    });
+    return Object.freeze(obj);
+  }
+
+  /* ======================= CONTENIDO (FICTICIO) ======================= */
+  var MISSIONS = deepFreeze([
+    {
+      id: 'phishing', door: 'Puerta 1', title: 'Phishing', topic: 'Detección de correos fraudulentos e ingeniería social.',
+      reinforce: 'Revisa dominios del remitente, enlaces y adjuntos antes de actuar; desconfía de la urgencia.',
+      levels: [
+        {
+          type: 'choice', title: 'Inspector de correo', brief: 'Analiza el correo recibido e identifica la señal más clara de fraude.',
+          variants: [
+            {
+              context: { type: 'email', from: 'Soporte Banco Andino <alertas@banc0-andino-seguro.co>', to: 'estudiante@escuela.edu', subject: 'URGENTE: su cuenta será bloqueada en 24 horas',
+                body: ['Estimado cliente:', 'Detectamos actividad inusual. Si no verifica sus datos hoy, su cuenta será bloqueada.', 'Verifique aquí: http://banc0-andino-seguro.co/verificar'] },
+              prompt: '¿Cuál es la señal MÁS clara de que este correo es fraudulento?',
+              options: ['El remitente usa un dominio que imita al banco ("banc0" con un cero)', 'El correo está escrito en español', 'El asunto menciona la cuenta del cliente', 'El correo llegó a una dirección educativa'],
+              correct: 0,
+              hint: 'Compara letra por letra el dominio del remitente con el nombre real de la entidad.',
+              explainOk: 'Correcto: los atacantes registran dominios casi idénticos (typosquatting) para engañar a la vista.',
+              explainFail: 'El idioma o el asunto no prueban nada. La pista clave está en el dominio del remitente: "banc0" usa un cero en lugar de la letra "o".'
+            },
+            {
+              context: { type: 'email', from: 'StreamPlus <facturacion@streamplus-pagos-seguros.com>', to: 'estudiante@escuela.edu', subject: 'Problema con tu método de pago',
+                body: ['Hola:', 'No pudimos procesar tu último pago. Actualiza tu tarjeta en las próximas 12 horas o tu cuenta será suspendida.', 'Actualizar tarjeta: http://streamplus-pagos-seguros.com/tarjeta'] },
+              prompt: '¿Qué detalle delata que este correo es fraudulento?',
+              options: ['El dominio no es el oficial: añade "-pagos-seguros" al nombre de la marca', 'El correo menciona una tarjeta', 'El correo usa un tono amable', 'El correo llegó por la mañana'],
+              correct: 0,
+              hint: 'Las empresas usan su dominio oficial. Desconfía de dominios con palabras extra como "seguro" o "pagos".',
+              explainOk: 'Correcto: añadir palabras al nombre de la marca es un truco clásico para crear dominios falsos creíbles.',
+              explainFail: 'Mencionar una tarjeta o ser amable no es prueba de fraude. Fíjate en el dominio: "streamplus-pagos-seguros.com" no es el oficial de la marca.'
+            },
+            {
+              context: { type: 'email', from: 'Rector Escuela <rector.escuela.oficial@correo-gratis.com>', to: 'secretaria@escuela.edu', subject: 'Necesito un favor urgente y confidencial',
+                body: ['Estoy en una reunión y no puedo hablar por teléfono.', 'Compra 5 tarjetas regalo de 50 USD y envíame los códigos por este correo.', 'No se lo comentes a nadie, es una sorpresa.'] },
+              prompt: '¿Qué tipo de ataque es y cuál es la señal clave?',
+              options: ['Fraude del CEO: suplanta a una autoridad desde un correo externo y pide tarjetas regalo con secretismo', 'Un boletín informativo normal de la escuela', 'Una actualización de software pendiente', 'Un correo legítimo porque está firmado por el rector'],
+              correct: 0,
+              hint: 'Una autoridad real usaría el correo institucional. Fíjate en el dominio y en lo que pide.',
+              explainOk: 'Correcto: es un fraude del CEO (BEC). Correo gratuito externo + urgencia + secretismo + tarjetas regalo.',
+              explainFail: 'El nombre visible se puede falsificar. El dominio "correo-gratis.com" no es institucional y pedir tarjetas regalo en secreto es una señal clásica de fraude del CEO.'
+            }
+          ]
+        },
+        {
+          type: 'multi', title: 'Señales de alerta', brief: 'Marca todas las señales de alerta del correo. Tienes tiempo limitado.',
+          variants: [
+            {
+              context: { type: 'email', from: 'Recursos Humanos <rrhh@empresa-nominas.net>', to: 'personal@empresa.com', subject: 'Actualización de nómina - acción requerida',
+                body: ['Hola:', 'Para recibir tu pago de este mes debes confirmar tu usuario y contraseña corporativa en las próximas 2 horas.', 'Descarga el formulario adjunto: Nomina_2026.pdf.exe', 'Enlace: http://empresa-nominas.net/login'] },
+              prompt: 'Marca TODAS las señales de alerta presentes.',
+              options: ['Urgencia artificial (2 horas)', 'Solicita usuario y contraseña', 'Adjunto con doble extensión (.pdf.exe)', 'Dominio externo distinto al corporativo', 'El correo incluye un saludo', 'Menciona el mes de pago'],
+              correct: [0, 1, 2, 3],
+              hint: 'Hay cuatro señales. Un saludo o la mención del mes son normales en correos legítimos.',
+              explainOk: 'Excelente: urgencia, petición de credenciales, doble extensión y dominio externo son las cuatro señales.',
+              explainFail: 'Revisa tu selección: las señales son la urgencia, la petición de credenciales, el adjunto .pdf.exe y el dominio externo. El saludo y el mes no son indicios.'
+            },
+            {
+              context: { type: 'email', from: 'Soporte Técnico <helpdesk@escuela-edu.support>', to: 'estudiante@escuela.edu', subject: 'Tu buzón está lleno (98 %)',
+                body: ['Querido usuario:', 'Tu buzón superó el límite. Para no perder correos, inicia sesión en los próximos 30 minutos.', 'Validar buzón: http://bit.ly/buzon-escuela', 'Atentamente, Equipo Técnico'] },
+              prompt: 'Marca TODAS las señales de alerta presentes.',
+              options: ['Plazo urgente de 30 minutos', 'Enlace acortado que oculta el destino real', 'Dominio parecido pero distinto (escuela-edu.support)', 'Saludo genérico ("Querido usuario")', 'Incluye una despedida', 'Menciona el porcentaje del buzón'],
+              correct: [0, 1, 2, 3],
+              hint: 'Hay cuatro señales. Fíjate en el plazo, el enlace, el dominio y cómo te llama.',
+              explainOk: 'Muy bien: urgencia, enlace acortado, dominio falso y saludo genérico.',
+              explainFail: 'Las señales son el plazo de 30 minutos, el enlace acortado, el dominio "escuela-edu.support" y el saludo genérico. Una despedida o un porcentaje no son indicios.'
+            },
+            {
+              context: { type: 'email', from: 'Concurso Gamer <premios@gamerzone-gratis.xyz>', to: 'estudiante@escuela.edu', subject: 'Has ganado 10.000 monedas para tu juego',
+                body: ['¡Felicidades! Eres el ganador del sorteo semanal.', 'Para recibir el premio responde con tu usuario, tu contraseña y tu fecha de nacimiento.', 'Descarga el instalador de monedas: monedas_gratis.zip.exe', 'Oferta válida solo hoy.'] },
+              prompt: 'Marca TODAS las señales de alerta presentes.',
+              options: ['Premio de un sorteo en el que no participaste', 'Pide usuario, contraseña y fecha de nacimiento', 'Archivo ejecutable disfrazado (.zip.exe)', 'Presión de tiempo ("solo hoy")', 'El correo está escrito en español', 'Te felicita'],
+              correct: [0, 1, 2, 3],
+              hint: 'Hay cuatro señales. Ningún sorteo legítimo pide tu contraseña.',
+              explainOk: 'Perfecto: premio inesperado, petición de credenciales, ejecutable disfrazado y presión de tiempo.',
+              explainFail: 'Las señales son el premio inesperado, la petición de credenciales, el archivo .zip.exe y la urgencia. El idioma o una felicitación no indican nada.'
+            }
+          ]
+        },
+        {
+          type: 'classify', title: 'Triaje de bandeja de entrada', brief: 'Clasifica cada mensaje como legítimo o phishing antes de que acabe el tiempo.',
+          variants: [
+            {
+              prompt: 'Clasifica cada mensaje de la bandeja de entrada.',
+              categories: ['Legítimo', 'Phishing'],
+              items: [
+                { label: 'De: notificaciones@github.com', detail: 'Nuevo inicio de sesión desde tu navegador habitual. No requiere acción.' },
+                { label: 'De: premios@loteria-global.win', detail: '¡Ganaste 5.000 USD! Envía tu número de tarjeta para el depósito.' },
+                { label: 'De: it-support@micr0soft-help.com', detail: 'Tu licencia caducó. Instala esta herramienta de acceso remoto.' },
+                { label: 'De: profesora.ruiz@escuela.edu', detail: 'Recordatorio: la entrega del proyecto es el viernes en la plataforma habitual.' },
+                { label: 'De: paqueteria@envios-rapidos.xyz', detail: 'Tu paquete está retenido. Paga 1,99 USD en este enlace acortado.' }
+              ],
+              answers: [0, 1, 1, 0, 1],
+              hint: 'Desconfía de premios, pagos pequeños urgentes y dominios que imitan marcas conocidas.',
+              explainOk: 'Bandeja limpia: identificaste los tres mensajes fraudulentos.',
+              explainFail: 'Hay al menos una clasificación incorrecta. Premios, pagos urgentes y "micr0soft" con cero son phishing.'
+            },
+            {
+              prompt: 'Clasifica cada mensaje de la bandeja de entrada.',
+              categories: ['Legítimo', 'Phishing'],
+              items: [
+                { label: 'De: biblioteca@escuela.edu', detail: 'Tu préstamo vence mañana. Renuévalo desde el portal habitual de la biblioteca.' },
+                { label: 'De: seguridad@bancoandino-verificacion.info', detail: 'Detectamos un acceso sospechoso. Responde con tu PIN para bloquearlo.' },
+                { label: 'De: no-reply@calendario.escuela.edu', detail: 'Invitación: reunión de padres el jueves a las 18:00.' },
+                { label: 'De: entregas@correos-envio24.top', detail: 'Tu envío requiere pago de aduana. Introduce los datos de tu tarjeta.' },
+                { label: 'De: soporte@drive-compartido.click', detail: 'Un compañero compartió "Notas_finales.pdf". Inicia sesión con tu correo y contraseña para verlo.' }
+              ],
+              answers: [0, 1, 0, 1, 1],
+              hint: 'Ningún banco pide tu PIN por correo. Revisa también los dominios poco habituales (.top, .click).',
+              explainOk: 'Bien hecho: detectaste el falso banco, la falsa aduana y el falso archivo compartido.',
+              explainFail: 'Hay al menos un error. Pedir el PIN, pagos de aduana inesperados y "inicia sesión para ver un archivo" desde dominios extraños son phishing.'
+            },
+            {
+              prompt: 'Clasifica cada mensaje de la bandeja de entrada.',
+              categories: ['Legítimo', 'Phishing'],
+              items: [
+                { label: 'De: rrhh@empresa.com', detail: 'Recordatorio: el formulario de vacaciones está en la intranet, como cada año.' },
+                { label: 'De: ceo.empresa@outlook-ejecutivos.net', detail: 'Haz una transferencia urgente a este proveedor. Es confidencial.' },
+                { label: 'De: alertas@redsocial-soporte.co', detail: 'Tu cuenta será eliminada por infringir derechos de autor. Apela aquí en 1 hora.' },
+                { label: 'De: club.robotica@escuela.edu', detail: 'El taller del sábado se traslada al aula 12.' },
+                { label: 'De: noticias@escuela.edu', detail: 'Boletín mensual: resultados de la feria de ciencias.' }
+              ],
+              answers: [0, 1, 1, 0, 0],
+              hint: 'Transferencias urgentes y confidenciales o amenazas de borrar tu cuenta son tácticas de presión.',
+              explainOk: 'Correcto: el falso CEO y la falsa alerta de la red social son phishing.',
+              explainFail: 'Revisa: el "CEO" usa un dominio externo y la red social falsa amenaza con un plazo de 1 hora. Los demás son mensajes internos normales.'
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'passwords', door: 'Puerta 2', title: 'Contraseñas', topic: 'Construcción y gestión segura de credenciales.',
+      reinforce: 'Usa frases de contraseña largas y únicas, un gestor de contraseñas y la verificación en dos pasos.',
+      levels: [
+        {
+          type: 'choice', title: 'Auditor de credenciales', brief: 'Elige la contraseña ficticia más robusta del listado.',
+          variants: [
+            {
+              prompt: '¿Cuál de estas contraseñas FICTICIAS es la más robusta?',
+              options: ['Sofia2008', 'P@ssw0rd', 'tigre-Nube-47-Volcán!', '12345678abc'],
+              correct: 2,
+              hint: 'La longitud y la variedad de caracteres pesan más que las sustituciones típicas como @ por a.',
+              explainOk: 'Correcto: una frase larga con mayúsculas, números y símbolos es la opción más robusta.',
+              explainFail: 'Nombres con fechas, "P@ssw0rd" y secuencias numéricas están en todos los diccionarios de ataque.'
+            },
+            {
+              prompt: '¿Cuál de estas contraseñas FICTICIAS resistiría mejor un ataque de diccionario?',
+              options: ['Barcelona10', 'qwerty2026', 'Lápiz#Río-93-cometa*Azul', 'Admin123!'],
+              correct: 2,
+              hint: 'Los diccionarios de ataque incluyen equipos de fútbol, filas del teclado y "admin".',
+              explainOk: 'Correcto: combina palabras sin relación, números y símbolos, y es larga.',
+              explainFail: '"Barcelona10", "qwerty2026" y "Admin123!" aparecen en listas de contraseñas filtradas. La más robusta es la frase larga y variada.'
+            },
+            {
+              prompt: 'Una aplicación te pide una contraseña nueva. ¿Qué opción FICTICIA es la mejor?',
+              options: ['La misma contraseña que usas en tu correo', 'Tu fecha de nacimiento: 14052009', 'Una frase única: Mi-gato-Come-7-uvas!', 'El nombre de tu mascota en mayúsculas: LUNA'],
+              correct: 2,
+              hint: 'Debe ser única para ese servicio y no basarse en datos personales fáciles de averiguar.',
+              explainOk: 'Correcto: una frase única, larga y variada es fácil de recordar y difícil de adivinar.',
+              explainFail: 'Reutilizar contraseñas, usar fechas o nombres de mascotas es inseguro: son datos que un atacante puede averiguar o ya tiene.'
+            }
+          ]
+        },
+        {
+          type: 'password', title: 'Constructor de contraseñas', brief: 'Crea una contraseña FICTICIA que cumpla todos los requisitos del auditor. No uses contraseñas reales.',
+          variants: [
+            {
+              prompt: 'Construye una contraseña ficticia que alcance el nivel "Muy fuerte".',
+              hint: 'Une tres palabras sin relación con guiones, añade un número y un símbolo, y alterna mayúsculas.',
+              explainOk: 'Contraseña "Muy fuerte" construida. Recuerda: nunca reutilices contraseñas reales.',
+              explainFail: 'La contraseña no cumple todos los requisitos. Revisa la lista de comprobación en verde y rojo.'
+            },
+            {
+              prompt: 'El laboratorio necesita una contraseña ficticia para su red wifi de invitados. Debe alcanzar el nivel "Muy fuerte".',
+              hint: 'Piensa en una frase sobre el laboratorio, sepárala con símbolos y añade números y mayúsculas.',
+              explainOk: 'Contraseña de wifi "Muy fuerte" lista. Recuerda cambiarla periódicamente en una red real.',
+              explainFail: 'La contraseña del wifi no cumple todos los requisitos. Revisa los puntos en rojo de la lista.'
+            },
+            {
+              prompt: 'Crea una contraseña maestra ficticia para un gestor de contraseñas. Debe alcanzar el nivel "Muy fuerte".',
+              hint: 'Una contraseña maestra debe ser la más larga: usa 4 palabras, un número y un símbolo.',
+              explainOk: 'Contraseña maestra "Muy fuerte" creada. Es la única que tendrías que memorizar.',
+              explainFail: 'La contraseña maestra no cumple todos los requisitos. Revisa los puntos en rojo de la lista.'
+            }
+          ]
+        },
+        {
+          type: 'classify', title: 'Hábitos de seguridad', brief: 'Clasifica cada hábito como buena o mala práctica.',
+          variants: [
+            {
+              prompt: 'Clasifica cada práctica relacionada con contraseñas.',
+              categories: ['Buena práctica', 'Mala práctica'],
+              items: [
+                { label: 'Activar la verificación en dos pasos (2FA)', detail: 'En correo, redes sociales y banca.' },
+                { label: 'Usar la misma contraseña en todas las cuentas', detail: 'Así es más fácil recordarla.' },
+                { label: 'Guardar las contraseñas en un gestor cifrado', detail: 'Protegido con una contraseña maestra.' },
+                { label: 'Anotar la contraseña en un pósit', detail: 'Pegado al monitor del laboratorio.' },
+                { label: 'Usar frases de contraseña largas y únicas', detail: 'Una distinta por servicio.' },
+                { label: 'Compartir la contraseña con un compañero', detail: 'Solo si es de confianza.' }
+              ],
+              answers: [0, 1, 0, 1, 0, 1],
+              hint: 'Una contraseña solo es segura si es secreta, única y está protegida.',
+              explainOk: 'Perfecto: dominas los hábitos de gestión de credenciales.',
+              explainFail: 'Reutilizar, anotar en papel visible o compartir contraseñas siempre es mala práctica.'
+            },
+            {
+              prompt: 'Clasifica cada práctica relacionada con el acceso a tus cuentas.',
+              categories: ['Buena práctica', 'Mala práctica'],
+              items: [
+                { label: 'Cerrar sesión en ordenadores compartidos', detail: 'Al terminar en la sala de informática.' },
+                { label: 'Guardar la contraseña en el navegador de un ordenador público', detail: 'Para no escribirla otra vez.' },
+                { label: 'Cambiar la contraseña tras una filtración', detail: 'Cuando un servicio avisa de un incidente.' },
+                { label: 'Usar el nombre de tu mascota como contraseña', detail: 'Es fácil de recordar.' },
+                { label: 'Guardar los códigos de recuperación en lugar seguro', detail: 'Por si pierdes el móvil del 2FA.' },
+                { label: 'Enviar tu contraseña por chat a "soporte técnico"', detail: 'Si te la piden por mensaje.' }
+              ],
+              answers: [0, 1, 0, 1, 0, 1],
+              hint: 'Soporte técnico real nunca te pedirá la contraseña. Los ordenadores públicos no deben recordar nada.',
+              explainOk: 'Excelente: sabes proteger tus accesos en equipos compartidos y ante filtraciones.',
+              explainFail: 'Guardar contraseñas en equipos públicos, usar datos personales o enviarlas por chat son malas prácticas.'
+            },
+            {
+              prompt: 'Clasifica cada práctica relacionada con la autenticación.',
+              categories: ['Buena práctica', 'Mala práctica'],
+              items: [
+                { label: 'Usar una app autenticadora o llave física', detail: 'Como segundo factor de acceso.' },
+                { label: 'Añadir solo un número al cambiar la contraseña', detail: 'Clave1, Clave2, Clave3…' },
+                { label: 'Comprobar HTTPS y el dominio antes de iniciar sesión', detail: 'Candado y dirección correcta.' },
+                { label: 'Aceptar notificaciones 2FA que no solicitaste', detail: 'Para que dejen de llegar.' },
+                { label: 'Escribir la contraseña delante de compañeros', detail: 'Proyectando la pantalla en clase.' },
+                { label: 'Usar contraseñas distintas para correo y banca', detail: 'Cada servicio con la suya.' }
+              ],
+              answers: [0, 1, 0, 1, 1, 0],
+              hint: 'Si llega una notificación 2FA que no pediste, alguien está intentando entrar con tu contraseña.',
+              explainOk: 'Muy bien: entiendes el segundo factor y cómo evitar los ataques de "fatiga de MFA".',
+              explainFail: 'Aceptar 2FA no solicitados, contraseñas predecibles (Clave1, Clave2) o mostrarlas en público son malas prácticas.'
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'malware', door: 'Puerta 3', title: 'Malware', topic: 'Identificación de software malicioso y respuesta a incidentes.',
+      reinforce: 'Repasa los tipos de malware, cómo detectar procesos sospechosos y los pasos de respuesta a incidentes.',
+      levels: [
+        {
+          type: 'choice', title: 'Clasificador de amenazas', brief: 'Identifica el tipo de malware descrito.',
+          variants: [
+            {
+              prompt: 'Un programa cifra todos los documentos del equipo y exige un pago en criptomonedas para recuperarlos. ¿Qué tipo de malware es?',
+              options: ['Ransomware', 'Adware', 'Spyware', 'Gusano'],
+              correct: 0,
+              hint: 'Su nombre en inglés viene de "ransom", que significa rescate.',
+              explainOk: 'Correcto: el ransomware secuestra la información y pide un rescate.',
+              explainFail: 'El adware muestra publicidad, el spyware espía y el gusano se replica. El que pide rescate es el ransomware.'
+            },
+            {
+              prompt: 'Un programa se copia solo de un equipo a otro de la red escolar, sin que nadie lo abra, aprovechando una vulnerabilidad. ¿Qué tipo de malware es?',
+              options: ['Gusano', 'Ransomware', 'Adware', 'Keylogger'],
+              correct: 0,
+              hint: 'Piensa en el malware que se propaga por sí mismo, sin intervención del usuario.',
+              explainOk: 'Correcto: el gusano se autorreplica por la red explotando vulnerabilidades.',
+              explainFail: 'El ransomware cifra, el adware muestra anuncios y el keylogger registra teclas. El que se propaga solo es el gusano.'
+            },
+            {
+              prompt: 'Un juego "gratis" descargado de una web no oficial funciona bien, pero en segundo plano abre una puerta trasera para que un atacante controle el equipo. ¿Qué tipo de malware es?',
+              options: ['Troyano', 'Gusano', 'Adware', 'Ransomware'],
+              correct: 0,
+              hint: 'Recuerda el caballo de la mitología griega: un regalo que escondía soldados.',
+              explainOk: 'Correcto: un troyano se disfraza de programa útil para colar código malicioso.',
+              explainFail: 'No se propaga solo (gusano), ni muestra anuncios (adware), ni pide rescate (ransomware). Se disfraza de programa legítimo: es un troyano.'
+            }
+          ]
+        },
+        {
+          type: 'classify', title: 'Monitor de procesos', brief: 'Revisa el monitor de procesos y marca los sospechosos.',
+          variants: [
+            {
+              prompt: 'Clasifica cada proceso activo del equipo del laboratorio.',
+              categories: ['Legítimo', 'Sospechoso'],
+              items: [
+                { label: 'explorer.exe', detail: 'C:\\Windows\\ · CPU 1% · sin conexiones externas' },
+                { label: 'svch0st.exe', detail: 'C:\\Users\\ana\\AppData\\Local\\Temp\\ · CPU 96% · 185.220.101.7:4444' },
+                { label: 'chrome.exe', detail: 'C:\\Program Files\\Google\\Chrome\\ · CPU 4% · puerto 443 (HTTPS)' },
+                { label: 'factura_visor.scr', detail: 'C:\\Users\\ana\\Downloads\\ · CPU 38% · 45.13.8.2:6667' },
+                { label: 'MsMpEng.exe', detail: 'Windows Defender · CPU 3% · actualizaciones de firmas' }
+              ],
+              answers: [0, 1, 0, 1, 0],
+              hint: 'Fíjate en nombres que imitan procesos del sistema, rutas temporales y puertos poco comunes.',
+              explainOk: 'Bien visto: "svch0st.exe" desde Temp y un .scr en Descargas son claramente maliciosos.',
+              explainFail: 'Revisa la ruta y el nombre: los procesos del sistema no se ejecutan desde Temp o Descargas.'
+            },
+            {
+              prompt: 'Clasifica cada proceso activo del equipo de la biblioteca.',
+              categories: ['Legítimo', 'Sospechoso'],
+              items: [
+                { label: 'winlogon.exe', detail: 'C:\\Windows\\System32\\ · CPU 0% · sin conexiones externas' },
+                { label: 'expl0rer.exe', detail: 'C:\\Users\\luis\\AppData\\Roaming\\ · CPU 72% · 91.214.3.9:8080' },
+                { label: 'spoolsv.exe', detail: 'C:\\Windows\\System32\\ · CPU 1% · servicio de impresión' },
+                { label: 'keylog_helper.exe', detail: 'C:\\ProgramData\\temp\\ · CPU 12% · envía archivos a 103.77.2.5:21' },
+                { label: 'firefox.exe', detail: 'C:\\Program Files\\Mozilla Firefox\\ · CPU 5% · puerto 443 (HTTPS)' }
+              ],
+              answers: [0, 1, 0, 1, 0],
+              hint: 'Un cero en lugar de una "o" y un programa que envía archivos por FTP a una IP desconocida son malas señales.',
+              explainOk: 'Correcto: "expl0rer.exe" imita al explorador y "keylog_helper.exe" exfiltra datos.',
+              explainFail: 'Revisa los nombres: "expl0rer.exe" lleva un cero y está en Roaming; "keylog_helper.exe" envía archivos a una IP externa.'
+            },
+            {
+              prompt: 'Clasifica cada proceso activo del portátil de un estudiante.',
+              categories: ['Legítimo', 'Sospechoso'],
+              items: [
+                { label: 'lsass.exe', detail: 'C:\\Windows\\System32\\ · CPU 1% · autenticación local' },
+                { label: 'xmrig.exe', detail: 'C:\\Users\\eva\\Downloads\\crack\\ · CPU 99% · pool de minería 5.188.6.1:3333' },
+                { label: 'Code.exe', detail: 'C:\\Program Files\\Microsoft VS Code\\ · CPU 3% · puerto 443' },
+                { label: 'update_flash.exe', detail: 'C:\\Users\\eva\\AppData\\Local\\Temp\\ · CPU 41% · 194.61.24.8:1337' },
+                { label: 'csrss.exe', detail: 'C:\\Windows\\System32\\ · CPU 0% · proceso del sistema' }
+              ],
+              answers: [0, 1, 0, 1, 0],
+              hint: 'Un uso de CPU del 99 % desde una carpeta "crack" suele indicar un minero de criptomonedas oculto.',
+              explainOk: 'Correcto: un criptominero (xmrig) y un falso actualizador desde Temp.',
+              explainFail: 'Revisa: "xmrig.exe" mina criptomonedas desde una carpeta de cracks y "update_flash.exe" se ejecuta desde Temp con un puerto extraño.'
+            }
+          ]
+        },
+        {
+          type: 'multi', title: 'Respuesta a incidentes', brief: 'Selecciona las acciones correctas ante el incidente descrito.',
+          variants: [
+            {
+              prompt: 'Un equipo del laboratorio está infectado con ransomware. Marca TODAS las acciones correctas.',
+              options: ['Desconectar el equipo de la red', 'Avisar al equipo de seguridad o al docente responsable', 'Restaurar desde una copia de seguridad limpia', 'Pagar el rescate de inmediato', 'Copiar los archivos cifrados a una memoria USB', 'Desactivar el antivirus para que no moleste'],
+              correct: [0, 1, 2],
+              hint: 'Piensa en contener, comunicar y recuperar. Nada que propague o financie el ataque.',
+              explainOk: 'Respuesta de manual: aislar, notificar y restaurar desde un respaldo limpio.',
+              explainFail: 'Pagar no garantiza nada, copiar a USB propaga la infección y desactivar el antivirus empeora la situación.'
+            },
+            {
+              prompt: 'Un compañero abrió un adjunto y su equipo empezó a mostrar ventanas extrañas y a enviar correos solo. Marca TODAS las acciones correctas.',
+              options: ['Desconectar el equipo de la red y del wifi', 'Avisar al responsable de informática', 'Pasar un análisis antivirus actualizado', 'Reenviar el adjunto a otros para que lo prueben', 'Seguir usando el equipo como si nada', 'Borrar los registros para ocultar lo ocurrido'],
+              correct: [0, 1, 2],
+              hint: 'Contén la infección, comunica el incidente y analiza el equipo. Nunca ocultes ni propagues.',
+              explainOk: 'Correcto: aislar, avisar y analizar es la secuencia adecuada.',
+              explainFail: 'Reenviar el adjunto propaga el malware, seguir usando el equipo lo empeora y borrar registros destruye evidencias.'
+            },
+            {
+              prompt: 'Encuentras una memoria USB sin etiqueta en el pasillo del laboratorio. Marca TODAS las acciones correctas.',
+              options: ['No conectarla a ningún equipo', 'Entregarla al responsable de informática', 'Avisar si aparecen más memorias abandonadas (posible ataque de cebo)', 'Conectarla para ver de quién es', 'Abrir el archivo "Notas_examen.exe" que contiene', 'Probarla en el equipo del profesor por si es suya'],
+              correct: [0, 1, 2],
+              hint: 'Dejar memorias "olvidadas" es una técnica de ataque llamada baiting (cebo).',
+              explainOk: 'Correcto: una USB desconocida puede ejecutar malware al conectarla. Se entrega sin usarla.',
+              explainFail: 'Conectar una USB desconocida, abrir sus ejecutables o probarla en otro equipo puede infectar la red. Entrégala sin conectarla.'
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'networks', door: 'Puerta 4', title: 'Redes', topic: 'Puertos, cortafuegos y detección de actividad anómala.',
+      reinforce: 'Estudia los puertos más comunes, el principio de mínimo privilegio en cortafuegos y el análisis de tráfico anómalo.',
+      levels: [
+        {
+          type: 'choice', title: 'Tabla de puertos', brief: 'Recuerda los puertos estándar de los servicios de red.',
+          variants: [
+            {
+              prompt: '¿Qué puerto utiliza por defecto el protocolo HTTPS?',
+              options: ['80', '443', '21', '3389'],
+              correct: 1,
+              hint: 'El 80 es HTTP sin cifrar; HTTPS usa otro puerto conocido.',
+              explainOk: 'Correcto: HTTPS usa el puerto 443.',
+              explainFail: '80 es HTTP, 21 es FTP y 3389 es escritorio remoto (RDP). HTTPS usa el 443.'
+            },
+            {
+              prompt: '¿Qué puerto usa por defecto SSH para la administración remota cifrada?',
+              options: ['22', '23', '25', '110'],
+              correct: 0,
+              hint: 'Está justo antes del puerto de Telnet, su antecesor inseguro.',
+              explainOk: 'Correcto: SSH usa el puerto 22.',
+              explainFail: '23 es Telnet (sin cifrar), 25 es SMTP (correo) y 110 es POP3. SSH usa el 22.'
+            },
+            {
+              prompt: '¿Qué servicio funciona normalmente en el puerto 53?',
+              options: ['DNS (resolución de nombres)', 'FTP (transferencia de archivos)', 'RDP (escritorio remoto)', 'SMTP (correo saliente)'],
+              correct: 0,
+              hint: 'Es el servicio que traduce nombres como escuela.edu en direcciones IP.',
+              explainOk: 'Correcto: DNS usa el puerto 53 (UDP y TCP).',
+              explainFail: 'FTP usa el 21, RDP el 3389 y SMTP el 25. El puerto 53 es DNS.'
+            }
+          ]
+        },
+        {
+          type: 'classify', title: 'Configuración del cortafuegos', brief: 'Aplica el principio de mínimo privilegio en el cortafuegos.',
+          variants: [
+            {
+              prompt: 'Decide qué tráfico permitir o bloquear en el servidor web escolar.',
+              categories: ['Permitir', 'Bloquear'],
+              items: [
+                { label: 'Entrante TCP 443 (HTTPS)', detail: 'Hacia el servidor web público.' },
+                { label: 'Entrante TCP 23 (Telnet)', detail: 'Desde cualquier IP de Internet.' },
+                { label: 'Entrante TCP 3389 (RDP)', detail: 'Desde cualquier IP de Internet.' },
+                { label: 'Saliente UDP 53 (DNS)', detail: 'Hacia el resolvedor DNS interno.' },
+                { label: 'Entrante TCP 445 (SMB)', detail: 'Desde cualquier IP de Internet.' }
+              ],
+              answers: [0, 1, 1, 0, 1],
+              hint: 'Solo abre lo imprescindible para el servicio. Administración remota y compartición de archivos nunca expuestas a Internet.',
+              explainOk: 'Cortafuegos endurecido: solo HTTPS entrante y DNS saliente.',
+              explainFail: 'Telnet, RDP y SMB expuestos a Internet son vías de ataque clásicas y deben bloquearse.'
+            },
+            {
+              prompt: 'Decide qué tráfico permitir o bloquear en el servidor de correo escolar.',
+              categories: ['Permitir', 'Bloquear'],
+              items: [
+                { label: 'Entrante TCP 25 (SMTP)', detail: 'Correo entrante hacia el servidor de correo.' },
+                { label: 'Entrante TCP 993 (IMAPS)', detail: 'Lectura de correo cifrada para los usuarios.' },
+                { label: 'Entrante TCP 3306 (MySQL)', detail: 'Base de datos, desde cualquier IP de Internet.' },
+                { label: 'Entrante TCP 21 (FTP)', detail: 'Transferencia sin cifrar desde Internet.' },
+                { label: 'Entrante TCP 22 (SSH)', detail: 'Administración, desde cualquier IP de Internet.' }
+              ],
+              answers: [0, 0, 1, 1, 1],
+              hint: 'Un servidor de correo solo necesita los puertos de correo. Bases de datos y administración nunca abiertas a todo Internet.',
+              explainOk: 'Correcto: solo SMTP e IMAPS; base de datos, FTP y SSH cerrados al exterior.',
+              explainFail: 'MySQL, FTP y SSH abiertos a cualquier IP exponen el servidor. Solo deben permitirse los servicios de correo.'
+            },
+            {
+              prompt: 'Decide qué tráfico permitir o bloquear en la red de los equipos de estudiantes (no ofrecen servicios a Internet).',
+              categories: ['Permitir', 'Bloquear'],
+              items: [
+                { label: 'Saliente TCP 443 (HTTPS)', detail: 'Navegación web segura.' },
+                { label: 'Entrante TCP 445 (SMB)', detail: 'Desde Internet hacia los PCs de estudiantes.' },
+                { label: 'Saliente UDP 53 (DNS)', detail: 'Hacia el DNS interno.' },
+                { label: 'Entrante TCP 5900 (VNC)', detail: 'Control remoto desde Internet.' },
+                { label: 'Saliente TCP 6667 (IRC)', detail: 'Canal usado a menudo por botnets.' }
+              ],
+              answers: [0, 1, 0, 1, 1],
+              hint: 'Los equipos de usuario solo necesitan navegar y resolver nombres. Nada entrante desde Internet.',
+              explainOk: 'Correcto: navegación y DNS permitidos; control remoto, SMB e IRC bloqueados.',
+              explainFail: 'SMB y VNC entrantes permiten ataques directos y el IRC saliente es típico de equipos controlados por botnets.'
+            }
+          ]
+        },
+        {
+          type: 'choice', title: 'Mapa de red', brief: 'Detecta el equipo comprometido analizando el tráfico.',
+          variants: [
+            {
+              context: { type: 'table', headers: ['Equipo', 'IP', 'Conexiones/min', 'Puertos destino'],
+                rows: [['impresora-lab', '10.0.5.20', '3', '9100'], ['pc-docente', '10.0.5.11', '42', '443, 53'], ['pc-estudiante-07', '10.0.5.37', '1850', '21, 22, 23, 25, 80, 110, 139, 443, 445, 3389…'], ['servidor-archivos', '10.0.5.2', '120', '445']] },
+              prompt: '¿Qué equipo muestra un comportamiento de escaneo de puertos y debe aislarse?',
+              options: ['impresora-lab', 'pc-docente', 'pc-estudiante-07', 'servidor-archivos'],
+              correct: 2,
+              hint: 'Un escaneo intenta conectar con muchísimos puertos distintos en poco tiempo.',
+              explainOk: 'Correcto: pc-estudiante-07 hace 1850 conexiones/min a decenas de puertos: escaneo típico.',
+              explainFail: 'Un servidor de archivos usando el 445 es normal. Busca el equipo con muchas conexiones a muchos puertos distintos.'
+            },
+            {
+              context: { type: 'table', headers: ['Equipo', 'IP', 'Datos enviados (1 h)', 'Destino'],
+                rows: [['pc-biblioteca', '10.0.6.14', '35 MB', 'CDN de vídeos educativos'], ['pc-secretaria', '10.0.6.3', '18,4 GB', '45.153.160.2 (servidor desconocido, 03:00)'], ['servidor-backup', '10.0.6.2', '2,1 GB', 'nas-copias.escuela.local'], ['impresora-sala', '10.0.6.40', '0,2 MB', '10.0.6.2']] },
+              prompt: '¿Qué equipo muestra una posible exfiltración de datos?',
+              options: ['pc-biblioteca', 'pc-secretaria', 'servidor-backup', 'impresora-sala'],
+              correct: 1,
+              hint: 'Busca grandes volúmenes enviados a un destino externo desconocido y a horas extrañas.',
+              explainOk: 'Correcto: 18,4 GB a una IP desconocida de madrugada es una señal clara de exfiltración.',
+              explainFail: 'Las copias al NAS interno son normales. Lo anómalo es enviar 18,4 GB a un servidor externo desconocido a las 03:00.'
+            },
+            {
+              context: { type: 'table', headers: ['Equipo', 'IP', 'Peticiones/s salientes', 'Destino'],
+                rows: [['pc-aula-3', '10.0.7.21', '4', 'varios (navegación)'], ['camara-ip-patio', '10.0.7.88', '9200', '198.51.100.77:80 (siempre el mismo)'], ['pc-docente', '10.0.7.10', '12', 'varios (navegación)'], ['servidor-web', '10.0.7.5', '30', 'respuestas a clientes']] },
+              prompt: '¿Qué dispositivo parece formar parte de una botnet que ataca (DDoS) a otro servidor?',
+              options: ['pc-aula-3', 'camara-ip-patio', 'pc-docente', 'servidor-web'],
+              correct: 1,
+              hint: 'Los dispositivos IoT con contraseñas por defecto son reclutados a menudo por botnets.',
+              explainOk: 'Correcto: una cámara IP enviando 9200 peticiones/s al mismo destino participa en un DDoS.',
+              explainFail: 'Los PCs navegan con pocas peticiones a destinos variados. La cámara envía miles de peticiones por segundo siempre al mismo servidor.'
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'forensics', door: 'Puerta 5', title: 'Informática Forense', topic: 'Integridad de evidencias, análisis de logs y cadena de custodia.',
+      reinforce: 'Repasa el uso de hashes para integridad, la lectura de logs y la cadena de custodia.',
+      levels: [
+        {
+          type: 'choice', title: 'Integridad de evidencias', brief: 'Comprende los conceptos básicos de la informática forense.',
+          variants: [
+            {
+              prompt: '¿Para qué se calcula el hash (por ejemplo SHA-256) de una evidencia digital?',
+              options: ['Para verificar que la evidencia no ha sido alterada', 'Para cifrar la evidencia', 'Para comprimir el archivo', 'Para borrar los metadatos'],
+              correct: 0,
+              hint: 'Si cambia un solo bit del archivo, su hash cambia por completo.',
+              explainOk: 'Correcto: el hash es la "huella digital" que demuestra la integridad de la evidencia.',
+              explainFail: 'Un hash no cifra, no comprime ni borra nada: sirve para comprobar que el archivo no cambió.'
+            },
+            {
+              prompt: '¿Qué es la "cadena de custodia" en informática forense?',
+              options: ['El registro documentado de quién manipuló la evidencia, cuándo y para qué', 'Una cadena física para atar los discos duros', 'El cifrado de la evidencia con contraseña', 'La lista de virus encontrados en el equipo'],
+              correct: 0,
+              hint: 'Tiene que ver con la trazabilidad: poder demostrar por qué manos pasó la evidencia.',
+              explainOk: 'Correcto: la cadena de custodia garantiza la trazabilidad y validez de la evidencia.',
+              explainFail: 'No es algo físico ni un cifrado: es el registro documentado de cada persona que manipula la evidencia.'
+            },
+            {
+              prompt: '¿Por qué se usa un bloqueador de escritura al copiar un disco sospechoso?',
+              options: ['Para impedir que la copia modifique el disco original', 'Para acelerar la copia', 'Para borrar los archivos ocultos', 'Para desactivar el antivirus del equipo'],
+              correct: 0,
+              hint: 'El principio básico forense es no alterar nunca la evidencia original.',
+              explainOk: 'Correcto: el bloqueador permite leer el disco sin escribir ni un bit en él.',
+              explainFail: 'No acelera ni borra nada: impide que el sistema escriba en el disco original durante la adquisición.'
+            }
+          ]
+        },
+        {
+          type: 'choice', title: 'Analizador de logs', brief: 'Revisa el registro de eventos e identifica la actividad maliciosa.',
+          variants: [
+            {
+              context: { type: 'log', lines: [
+                '2026-03-14 02:10:01 sshd[812]: Failed password for admin from 203.0.113.45 port 51122',
+                '2026-03-14 02:10:02 sshd[812]: Failed password for admin from 203.0.113.45 port 51124',
+                '2026-03-14 02:10:03 sshd[812]: Failed password for admin from 203.0.113.45 port 51126',
+                '2026-03-14 02:10:04 sshd[812]: Failed password for admin from 203.0.113.45 port 51128',
+                '2026-03-14 02:10:09 sshd[812]: Accepted password for admin from 203.0.113.45 port 51140',
+                '2026-03-14 08:15:22 sshd[930]: Accepted password for maria from 10.0.5.11 port 40211',
+                '2026-03-14 09:02:40 sshd[944]: Failed password for juan from 10.0.5.14 port 40990',
+                '2026-03-14 09:02:51 sshd[944]: Accepted password for juan from 10.0.5.14 port 40992'] },
+              prompt: '¿Qué IP realizó un ataque de fuerza bruta y logró acceder?',
+              options: ['203.0.113.45', '10.0.5.11', '10.0.5.14', '198.51.100.9'],
+              correct: 0,
+              hint: 'Busca muchos fallos seguidos desde la misma IP en pocos segundos, seguidos de un acceso aceptado.',
+              explainOk: 'Correcto: 203.0.113.45 falló varias veces en segundos y después entró como admin.',
+              explainFail: 'Un único fallo seguido de un acierto es un error humano normal. Busca la ráfaga de fallos de madrugada.'
+            },
+            {
+              context: { type: 'log', lines: [
+                '10.0.5.30 - - [14/Mar/2026:10:01:12] "GET /notas?alumno=145 HTTP/1.1" 200',
+                '10.0.5.31 - - [14/Mar/2026:10:01:40] "GET /horario HTTP/1.1" 200',
+                '198.51.100.23 - - [14/Mar/2026:10:02:03] "GET /notas?alumno=145\' OR \'1\'=\'1 HTTP/1.1" 500',
+                '198.51.100.23 - - [14/Mar/2026:10:02:05] "GET /notas?alumno=1 UNION SELECT usuario,clave FROM usuarios HTTP/1.1" 200',
+                '10.0.5.32 - - [14/Mar/2026:10:03:10] "GET /login HTTP/1.1" 200'] },
+              prompt: '¿Qué IP intentó un ataque de inyección SQL contra la web de notas?',
+              options: ['198.51.100.23', '10.0.5.30', '10.0.5.31', '10.0.5.32'],
+              correct: 0,
+              hint: 'Busca peticiones con comillas, "OR \'1\'=\'1" o "UNION SELECT" dentro de la URL.',
+              explainOk: 'Correcto: 198.51.100.23 inyectó código SQL para extraer usuarios y claves.',
+              explainFail: 'Las demás IP hacen peticiones normales. La inyección SQL se reconoce por "OR \'1\'=\'1" y "UNION SELECT" en la URL.'
+            },
+            {
+              context: { type: 'log', lines: [
+                '2026-03-15 07:58:10 EVENTO 4624 Inicio de sesión correcto · usuario: lucia · equipo: PC-AULA-2',
+                '2026-03-15 23:41:02 EVENTO 4624 Inicio de sesión correcto · usuario: soporte_tmp · equipo: SRV-ARCHIVOS',
+                '2026-03-15 23:41:30 EVENTO 4720 Cuenta de usuario creada · nueva: admin2 · por: soporte_tmp',
+                '2026-03-15 23:42:05 EVENTO 4732 Añadido al grupo Administradores · cuenta: admin2 · por: soporte_tmp',
+                '2026-03-15 23:44:51 EVENTO 1102 Registro de auditoría borrado · por: soporte_tmp',
+                '2026-03-16 08:03:22 EVENTO 4624 Inicio de sesión correcto · usuario: pedro · equipo: PC-AULA-5'] },
+              prompt: '¿Qué cuenta realizó acciones propias de un atacante (crear un administrador y borrar el registro)?',
+              options: ['soporte_tmp', 'lucia', 'pedro', 'admin2'],
+              correct: 0,
+              hint: 'Fíjate en el campo "por:" de cada evento y en la hora a la que ocurren.',
+              explainOk: 'Correcto: soporte_tmp entró de noche, creó admin2, le dio privilegios y borró la auditoría.',
+              explainFail: 'admin2 es la cuenta creada, no quien actúa. El campo "por:" muestra que todo lo hizo soporte_tmp de noche.'
+            }
+          ]
+        },
+        {
+          type: 'multi', title: 'Cadena de custodia', brief: 'Selecciona las prácticas que preservan la validez de la evidencia.',
+          variants: [
+            {
+              prompt: 'Marca TODAS las prácticas correctas de cadena de custodia.',
+              options: ['Registrar quién, cuándo y por qué manipula la evidencia', 'Trabajar sobre una copia forense, no sobre el original', 'Calcular y anotar el hash antes y después del análisis', 'Encender el equipo sospechoso para "ver qué tiene"', 'Guardar la evidencia en un cajón sin etiqueta', 'Editar los logs para que se lean mejor'],
+              correct: [0, 1, 2],
+              hint: 'Todo lo que modifique la evidencia original o rompa su trazabilidad invalida el análisis.',
+              explainOk: 'Impecable: trazabilidad, copia forense y verificación por hash.',
+              explainFail: 'Encender el equipo, no etiquetar o editar logs altera la evidencia y la invalida.'
+            },
+            {
+              prompt: 'Vas a analizar el móvil de un caso de ciberacoso escolar. Marca TODAS las prácticas correctas.',
+              options: ['Ponerlo en modo avión o en una bolsa Faraday para evitar borrados remotos', 'Fotografiar y documentar su estado inicial', 'Extraer los datos con herramientas forenses y conservar el hash', 'Borrar los mensajes que no parezcan relevantes', 'Instalar aplicaciones en el móvil para "investigar"', 'Dejarlo cargando en la sala de profesores sin registro'],
+              correct: [0, 1, 2],
+              hint: 'Aísla el dispositivo, documenta todo y no modifiques su contenido.',
+              explainOk: 'Correcto: aislar, documentar y extraer de forma forense preserva la evidencia.',
+              explainFail: 'Borrar mensajes o instalar apps modifica la evidencia, y dejarlo sin registro rompe la cadena de custodia.'
+            },
+            {
+              prompt: 'Debes redactar el informe forense de un incidente. Marca TODAS las prácticas correctas.',
+              options: ['Describir los pasos para que otro perito pueda reproducirlos', 'Separar los hechos verificados de las opiniones', 'Incluir los hashes de las evidencias analizadas', 'Omitir los hallazgos que contradigan tu hipótesis', 'Añadir conclusiones sin pruebas para que sea más convincente', 'Usar la evidencia original como borrador de trabajo'],
+              correct: [0, 1, 2],
+              hint: 'Un buen informe forense es reproducible, objetivo y verificable.',
+              explainOk: 'Excelente: reproducibilidad, objetividad y verificación por hash.',
+              explainFail: 'Ocultar hallazgos o inventar conclusiones invalida el informe, y trabajar sobre el original altera la evidencia.'
+            }
+          ]
+        }
+      ]
+    }
+  ]);
+
+  /* ======================= FUNCIONES PURAS (testeables) ======================= */
+  function clampInt(value, min, max) {
+    var n = Number(value);
+    if (!Number.isFinite(n)) return min;
+    n = Math.floor(n);
+    return Math.min(max, Math.max(min, n));
+  }
+
+  function sanitizeName(raw) {
+    if (typeof raw !== 'string') return '';
+    var s = raw.normalize('NFC');
+    s = s.replace(/[^\p{L}\p{M}\p{N} .'\-]/gu, '');
+    s = s.replace(/\s+/g, ' ').trim();
+    return Array.from(s).slice(0, NAME_MAX).join('').trim();
+  }
+
+  function slugify(text) {
+    var s = String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    s = s.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+    return s || 'invitado';
+  }
+
+  function formatTime(totalSeconds) {
+    var t = clampInt(totalSeconds, 0, MAX_TIME);
+    var h = Math.floor(t / 3600);
+    var m = Math.floor((t % 3600) / 60);
+    var s = t % 60;
+    var mm = String(m).padStart(2, '0');
+    var ss = String(s).padStart(2, '0');
+    return h > 0 ? String(h).padStart(2, '0') + ':' + mm + ':' + ss : mm + ':' + ss;
+  }
+
+  function evaluatePassword(pwd) {
+    var p = typeof pwd === 'string' ? pwd.slice(0, 128) : '';
+    var lower = p.toLowerCase();
+    var checks = {
+      length: Array.from(p).length >= 12,
+      lower: /\p{Ll}/u.test(p),
+      upper: /\p{Lu}/u.test(p),
+      digit: /\p{N}/u.test(p),
+      symbol: /[^\p{L}\p{N}]/u.test(p),
+      notCommon: p.length > 0 && !COMMON_WORDS.some(function (w) { return lower.indexOf(w) !== -1; }),
+      noRepeat: p.length > 0 && !/(.)\1\1/u.test(p)
+    };
+    var score = Object.keys(checks).filter(function (k) { return checks[k]; }).length;
+    var label = score <= 2 ? 'Muy débil' : score <= 4 ? 'Débil' : score === 5 ? 'Aceptable' : score === 6 ? 'Fuerte' : 'Muy fuerte';
+    return { score: score, max: 7, label: label, checks: checks };
+  }
+
+  function checkAnswer(level, answer) {
+    if (!level || typeof level !== 'object') return { ok: false, incomplete: true, message: 'Desafío no válido.' };
+    switch (level.type) {
+      case 'choice':
+        if (!Number.isInteger(answer)) return { ok: false, incomplete: true, message: 'Selecciona una opción antes de verificar.' };
+        return { ok: answer === level.correct, incomplete: false };
+      case 'multi': {
+        if (!Array.isArray(answer) || answer.length === 0) return { ok: false, incomplete: true, message: 'Marca al menos una opción antes de verificar.' };
+        var uniq = Array.from(new Set(answer)).filter(Number.isInteger).sort(function (a, b) { return a - b; });
+        var exp = level.correct.slice().sort(function (a, b) { return a - b; });
+        return { ok: uniq.length === exp.length && uniq.every(function (v, i) { return v === exp[i]; }), incomplete: false };
+      }
+      case 'classify':
+        if (!Array.isArray(answer) || answer.length !== level.items.length || answer.some(function (v) { return !Number.isInteger(v); })) {
+          return { ok: false, incomplete: true, message: 'Clasifica todos los elementos antes de verificar.' };
+        }
+        return { ok: answer.every(function (v, i) { return v === level.answers[i]; }), incomplete: false };
+      case 'password':
+        if (typeof answer !== 'string' || answer.length === 0) return { ok: false, incomplete: true, message: 'Escribe una contraseña ficticia antes de verificar.' };
+        return { ok: evaluatePassword(answer).score === 7, incomplete: false };
+      default:
+        return { ok: false, incomplete: true, message: 'Tipo de desafío desconocido.' };
+    }
+  }
+
+  /* Aleatoriedad criptográfica (crypto.getRandomValues) con respaldo seguro. */
+  function randomInt(n) {
+    var max = clampInt(n, 1, 1000000);
+    try {
+      var buf = new Uint32Array(1);
+      var limit = Math.floor(4294967296 / max) * max;
+      do { window.crypto.getRandomValues(buf); } while (buf[0] >= limit);
+      return buf[0] % max;
+    } catch (e) {
+      return Math.floor(Math.random() * max);
+    }
+  }
+
+  /* Elige un escenario distinto del último que vio el estudiante. */
+  function pickVariant(count, last, rnd) {
+    var n = clampInt(count, 1, 1000);
+    if (n === 1) return 0;
+    var prev = Number.isInteger(last) && last >= 0 && last < n ? last : -1;
+    var r = typeof rnd === 'function' ? rnd : randomInt;
+    if (prev === -1) return clampInt(r(n), 0, n - 1);
+    var v = clampInt(r(n - 1), 0, n - 2);
+    return v >= prev ? v + 1 : v;
+  }
+
+  function shuffle(list, rnd) {
+    var a = list.slice();
+    var r = typeof rnd === 'function' ? rnd : randomInt;
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = clampInt(r(i + 1), 0, i);
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  /* Combina los datos comunes del nivel con el escenario (variante) elegido. */
+  function getChallenge(mi, li, v) {
+    var m = MISSIONS[clampInt(mi, 0, MISSIONS.length - 1)];
+    var lv = m.levels[clampInt(li, 0, 2)];
+    var vi = clampInt(v, 0, lv.variants.length - 1);
+    var c = { type: lv.type, title: lv.title, brief: lv.brief, variant: vi, variantCount: lv.variants.length };
+    var src = lv.variants[vi];
+    Object.keys(src).forEach(function (k) { c[k] = src[k]; });
+    return Object.freeze(c);
+  }
+
+  function computeLevelScore(value, hints, fails) {
+    var v = clampInt(value, 0, 100);
+    var penalty = HINT_COST * clampInt(hints, 0, 1000) + FAIL_COST * clampInt(fails, 0, 1000);
+    return Math.max(Math.ceil(v * 0.4), v - penalty);
+  }
+
+  function computeGrade(percent) {
+    var p = Number(percent);
+    if (!Number.isFinite(p)) p = 0;
+    if (p >= 90) return { letter: 'A', label: 'Sobresaliente' };
+    if (p >= 80) return { letter: 'B', label: 'Notable' };
+    if (p >= 70) return { letter: 'C', label: 'Aprobado' };
+    if (p >= 60) return { letter: 'D', label: 'Suficiente' };
+    return { letter: 'F', label: 'Insuficiente' };
+  }
+
+  function defaultMission() {
+    return { levels: [false, false, false], best: [0, 0, 0], lastVariant: [-1, -1, -1], hits: 0, errors: 0, attempts: 0, hints: 0, timeSec: 0 };
+  }
+
+  function defaultState() {
+    return { version: 1, studentName: '', sandbox: false, sound: true, totalTime: 0, missions: MISSIONS.map(defaultMission), history: [] };
+  }
+
+  function sanitizeHistory(h) {
+    if (!h || typeof h !== 'object' || Array.isArray(h)) return null;
+    var result = typeof h.result === 'string' && Object.prototype.hasOwnProperty.call(RESULTS, h.result) ? h.result : null;
+    if (!result) return null;
+    return {
+      ts: clampInt(h.ts, 0, 8640000000000000),
+      mission: clampInt(h.mission, 0, MISSIONS.length - 1),
+      level: clampInt(h.level, 0, 2),
+      result: result,
+      points: clampInt(h.points, 0, 40),
+      timeSec: clampInt(h.timeSec, 0, MAX_TIME)
+    };
+  }
+
+  function validateState(raw) {
+    var s = defaultState();
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return s;
+    s.studentName = sanitizeName(raw.studentName);
+    s.sandbox = raw.sandbox === true;
+    s.sound = raw.sound !== false;
+    s.totalTime = clampInt(raw.totalTime, 0, MAX_TIME);
+    if (Array.isArray(raw.missions)) {
+      s.missions = s.missions.map(function (def, i) {
+        var r = raw.missions[i];
+        if (!r || typeof r !== 'object' || Array.isArray(r)) return def;
+        var levels = [0, 1, 2].map(function (j) { return Array.isArray(r.levels) && r.levels[j] === true; });
+        var best = [0, 1, 2].map(function (j) { return levels[j] && Array.isArray(r.best) ? clampInt(r.best[j], 0, LEVEL_POINTS[j]) : 0; });
+        var lastVariant = [0, 1, 2].map(function (j) {
+          return Array.isArray(r.lastVariant) ? clampInt(r.lastVariant[j], -1, MISSIONS[i].levels[j].variants.length - 1) : -1;
+        });
+        return {
+          levels: levels, best: best, lastVariant: lastVariant,
+          hits: clampInt(r.hits, 0, 100000), errors: clampInt(r.errors, 0, 100000),
+          attempts: clampInt(r.attempts, 0, 100000), hints: clampInt(r.hints, 0, 100000),
+          timeSec: clampInt(r.timeSec, 0, MAX_TIME)
+        };
+      });
+    }
+    if (Array.isArray(raw.history)) {
+      s.history = raw.history.slice(-HISTORY_MAX).map(sanitizeHistory).filter(Boolean);
+    }
+    return s;
+  }
+
+  function missionScore(m) { return m.best.reduce(function (a, b) { return a + b; }, 0); }
+  function missionCompleted(m) { return m.levels.every(Boolean); }
+  function totalScore(s) { return s.missions.reduce(function (a, m) { return a + missionScore(m); }, 0); }
+  function completedCount(s) { return s.missions.filter(missionCompleted).length; }
+  function maxScore() { return MISSIONS.length * 100; }
+
+  function isMissionUnlocked(s, i) {
+    if (i < 0 || i >= MISSIONS.length) return false;
+    return s.sandbox || i === 0 || missionCompleted(s.missions[i - 1]);
+  }
+  function isLevelUnlocked(s, i, j) {
+    if (j < 0 || j > 2 || !isMissionUnlocked(s, i)) return false;
+    return s.sandbox || j === 0 || s.missions[i].levels[j - 1];
+  }
+
+  function accuracy(s) {
+    var hits = 0, errors = 0;
+    s.missions.forEach(function (m) { hits += m.hits; errors += m.errors; });
+    var total = hits + errors;
+    return { hits: hits, errors: errors, percent: total ? Math.round((hits / total) * 100) : 0 };
+  }
+
+  function buildReportText(s, now) {
+    var date = new Date(typeof now === 'number' ? now : Date.now());
+    var total = totalScore(s);
+    var pct = Math.round((total / maxScore()) * 100);
+    var grade = computeGrade(pct);
+    var acc = accuracy(s);
+    var lines = [
+      'CYBERSHIELD — INFORME DE EVALUACIÓN',
+      '====================================',
+      'Estudiante: ' + (sanitizeName(s.studentName) || 'Invitado'),
+      'Fecha: ' + date.toLocaleString('es-ES'),
+      'Misiones completadas: ' + completedCount(s) + ' / ' + MISSIONS.length,
+      'Puntuación total: ' + total + ' / ' + maxScore() + ' (' + pct + '%)',
+      'Calificación: ' + grade.letter + ' — ' + grade.label,
+      'Precisión: ' + acc.percent + '% (' + acc.hits + ' aciertos, ' + acc.errors + ' errores)',
+      'Tiempo total: ' + formatTime(s.totalTime),
+      '',
+      'DESGLOSE POR SALA'
+    ];
+    MISSIONS.forEach(function (m, i) {
+      var ms = s.missions[i];
+      lines.push('- ' + m.door + ' ' + m.title + ': ' + missionScore(ms) + '/100 · niveles ' + ms.levels.filter(Boolean).length + '/3 · intentos ' + ms.attempts + ' · tiempo ' + formatTime(ms.timeSec));
+    });
+    lines.push('', 'TEMAS A REFORZAR');
+    var weak = MISSIONS.filter(function (m, i) { return missionScore(s.missions[i]) < 70; });
+    if (weak.length === 0) lines.push('- Ninguno. ¡Buen trabajo!');
+    weak.forEach(function (m) { lines.push('- ' + m.title + ': ' + m.reinforce); });
+    lines.push('', 'Generado localmente por CyberShield. Escenarios ficticios con fines educativos.');
+    return lines.join('\n');
+  }
+
+  /* ======================= ALMACENAMIENTO SEGURO ======================= */
+  var Store = {
+    load: function () {
+      try {
+        var text = window.localStorage.getItem(STORAGE_KEY);
+        if (!text || text.length > STORAGE_MAX_CHARS) return defaultState();
+        return validateState(JSON.parse(text));
+      } catch (e) {
+        return defaultState();
+      }
+    },
+    save: function (s) {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+        return true;
+      } catch (e) {
+        return false;
+      }
+    },
+    clear: function () {
+      try { window.localStorage.removeItem(STORAGE_KEY); } catch (e) { /* almacenamiento no disponible */ }
+    }
+  };
+
+  /* ======================= API PÚBLICA DE SOLO LECTURA (para pruebas) ======================= */
+  var core = {
+    VERSION: '1.0.0', STORAGE_KEY: STORAGE_KEY, NAME_MAX: NAME_MAX, HISTORY_MAX: HISTORY_MAX,
+    HINT_COST: HINT_COST, FAIL_COST: FAIL_COST, LEVEL_POINTS: LEVEL_POINTS, LEVEL_TIME: LEVEL_TIME, MISSIONS: MISSIONS,
+    getChallenge: getChallenge, pickVariant: pickVariant, shuffle: shuffle,
+    sanitizeName: sanitizeName, slugify: slugify, formatTime: formatTime, evaluatePassword: evaluatePassword,
+    checkAnswer: checkAnswer, computeLevelScore: computeLevelScore, computeGrade: computeGrade,
+    defaultState: defaultState, validateState: validateState, isMissionUnlocked: isMissionUnlocked,
+    isLevelUnlocked: isLevelUnlocked, missionScore: missionScore, totalScore: totalScore, buildReportText: buildReportText
+  };
+  Object.defineProperty(window, 'CyberShieldCore', { value: Object.freeze(core), writable: false, configurable: false, enumerable: false });
+
+  /* ======================= UTILIDADES DOM SEGURAS ======================= */
+  function $(id) { return document.getElementById(id); }
+
+  function el(tag, attrs) {
+    var node = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        var v = attrs[k];
+        if (v === null || v === undefined || v === false) return;
+        if (/^on/i.test(k) || k === 'innerHTML' || k === 'srcdoc') throw new Error('Atributo no permitido: ' + k);
+        if (k === 'class') node.className = v;
+        else if (k === 'text') node.textContent = String(v);
+        else node.setAttribute(k, v === true ? '' : String(v));
+      });
+    }
+    for (var i = 2; i < arguments.length; i++) appendChild(node, arguments[i]);
+    return node;
+  }
+  function appendChild(node, child) {
+    if (child === null || child === undefined || child === false) return;
+    if (Array.isArray(child)) { child.forEach(function (c) { appendChild(node, c); }); return; }
+    node.appendChild(child instanceof Node ? child : document.createTextNode(String(child)));
+  }
+  function setText(id, text) { var n = $(id); if (n) n.textContent = String(text); }
+  function show(id, visible) { var n = $(id); if (n) n.style.display = visible ? '' : 'none'; }
+
+  /* ======================= ESTADO EN EJECUCIÓN ======================= */
+  var state = Store.load();
+  var session = { view: 'menu', mission: 0, level: 0, variant: 0, order: [], hints: 0, fails: 0, solved: false, locked: false, timerLeft: 0, tickCount: 0 };
+  var audioCtx = null;
+  var lastFocus = null;
+
+  function persist() { Store.save(state); }
+
+  function beep(kind) {
+    if (!state.sound) return;
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      audioCtx = audioCtx || new Ctx();
+      var o = audioCtx.createOscillator();
+      var g = audioCtx.createGain();
+      o.frequency.value = kind === 'ok' ? 880 : kind === 'err' ? 220 : 520;
+      g.gain.setValueAtTime(0.05, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.25);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime + 0.26);
+    } catch (e) { /* audio no disponible */ }
+  }
+
+  function addHistory(result, points) {
+    state.history.push({ ts: Date.now(), mission: session.mission, level: session.level, result: result, points: points, timeSec: state.missions[session.mission].timeSec });
+    if (state.history.length > HISTORY_MAX) state.history = state.history.slice(-HISTORY_MAX);
+  }
+
+  /* ======================= NAVEGACIÓN ======================= */
+  var VIEWS = ['menu', 'instructions', 'hub', 'mission', 'scores', 'report'];
+  var HEADINGS = { menu: 'menu-heading', instructions: 'inst-heading', hub: 'hub-heading', mission: 'mission-heading', scores: 'scores-heading', report: 'report-heading' };
+
+  function showView(name) {
+    if (VIEWS.indexOf(name) === -1) return;
+    if (session.view === 'mission' && name !== 'mission') stopTimer();
+    session.view = name;
+    VIEWS.forEach(function (v) { $('view-' + v).classList.toggle('active', v === name); });
+    if (name === 'menu') renderMenu();
+    if (name === 'hub') renderHub();
+    if (name === 'scores') renderScores();
+    if (name === 'report') renderReport();
+    renderHUD();
+    window.scrollTo(0, 0);
+    var h = $(HEADINGS[name]);
+    if (h) h.focus({ preventScroll: true });
+  }
+
+  /* ======================= RENDER: HUD Y MENÚ ======================= */
+  function renderHUD() {
+    setText('hud-progress', 'Misiones: ' + completedCount(state) + '/' + MISSIONS.length);
+    setText('hud-score', 'Puntos: ' + totalScore(state) + '/' + maxScore());
+    setText('hud-time', 'Tiempo: ' + formatTime(state.totalTime));
+    setText('btn-sound-toggle', 'Sonido: ' + (state.sound ? 'Activo' : 'Silenciado'));
+    $('btn-sound-toggle').setAttribute('aria-pressed', state.sound ? 'true' : 'false');
+  }
+
+  function missionStatus(i) {
+    if (missionCompleted(state.missions[i])) return { text: 'Completada', cls: 'state-done' };
+    if (isMissionUnlocked(state, i)) return { text: 'Disponible', cls: 'state-open' };
+    return { text: 'Bloqueada', cls: 'state-locked' };
+  }
+
+  function renderMenu() {
+    var list = $('menu-door-preview');
+    list.replaceChildren();
+    MISSIONS.forEach(function (m, i) {
+      var st = missionStatus(i);
+      list.appendChild(el('div', { class: 'door-preview' },
+        el('div', null, el('strong', { text: m.door + ' · ' + m.title }), el('small', { text: missionScore(state.missions[i]) + ' / 100 pts' })),
+        el('span', { class: 'state-tag ' + st.cls, text: st.text })));
+    });
+    setText('menu-completion-tag', completedCount(state) + ' / ' + MISSIONS.length);
+    $('student-name-input').value = state.studentName;
+  }
+
+  /* ======================= RENDER: SALA PRINCIPAL ======================= */
+  function renderHub() {
+    var done = completedCount(state);
+    var pct = Math.round((done / MISSIONS.length) * 100);
+    var total = totalScore(state);
+    setText('hub-student-label', 'Estudiante: ' + (state.studentName || 'Invitado'));
+    setText('hub-progress-text', done + ' de ' + MISSIONS.length + ' misiones completadas (' + pct + '%)');
+    setText('hub-total-score', 'Puntuación total: ' + total + ' / ' + maxScore());
+    var grade = computeGrade(Math.round((total / maxScore()) * 100));
+    setText('hub-grade-preview', 'Calificación: ' + (done === MISSIONS.length ? grade.letter + ' (' + grade.label + ')' : 'Pendiente'));
+    $('hub-progress-fill').style.width = pct + '%';
+    $('hub-progressbar').setAttribute('aria-valuenow', String(pct));
+    setText('btn-toggle-sandbox', state.sandbox ? 'Volver a progresión por salas' : 'Desbloquear todas las puertas');
+    setText('hub-unlock-mode-label', 'Modo: ' + (state.sandbox ? 'Acceso libre (docente)' : 'Progresión por salas'));
+
+    var grid = $('doors-grid');
+    grid.replaceChildren();
+    MISSIONS.forEach(function (m, i) {
+      var ms = state.missions[i];
+      var unlocked = isMissionUnlocked(state, i);
+      var st = missionStatus(i);
+      var dots = el('div', { class: 'level-dots', 'aria-hidden': 'true' },
+        ms.levels.map(function (on) { return el('span', { class: 'level-dot' + (on ? ' on' : '') }); }));
+      var card = el('button', {
+        class: 'door-card' + (missionCompleted(ms) ? ' done' : ''), id: 'door-' + i, type: 'button',
+        disabled: !unlocked, 'data-mission': i,
+        'aria-label': m.door + ': ' + m.title + '. ' + st.text + '. ' + missionScore(ms) + ' de 100 puntos.'
+      },
+        el('span', { class: 'door-number', text: m.door }),
+        el('span', { class: 'door-title', text: m.title }),
+        el('span', { class: 'door-topic', text: m.topic }),
+        el('span', { class: 'door-meta' }, el('span', { class: 'tabular-nums', text: missionScore(ms) + ' / 100 pts' }), dots),
+        el('span', { class: 'state-tag ' + st.cls, text: (unlocked ? '' : '🔒 ') + st.text }));
+      grid.appendChild(card);
+    });
+  }
+
+  /* ======================= MISIÓN ======================= */
+  function openLevel(mi, lj) {
+    if (!isLevelUnlocked(state, mi, lj)) return;
+    stopTimer();
+    session.mission = mi; session.level = lj;
+    // Cada vez que se entra al nivel se elige un escenario distinto del anterior y se barajan las opciones.
+    var ms = state.missions[mi];
+    session.variant = pickVariant(MISSIONS[mi].levels[lj].variants.length, ms.lastVariant[lj]);
+    ms.lastVariant[lj] = session.variant;
+    var ch = currentChallenge();
+    var n = ch.type === 'classify' ? ch.items.length : (ch.options ? ch.options.length : 0);
+    session.order = shuffle(Array.from({ length: n }, function (_, k) { return k; }));
+    persist();
+    session.hints = 0; session.fails = 0; session.solved = false; session.locked = false;
+    if (session.view !== 'mission') showView('mission');
+    renderMission();
+    startTimer();
+  }
+
+  function currentChallenge() { return getChallenge(session.mission, session.level, session.variant); }
+
+  function renderMission() {
+    var m = MISSIONS[session.mission];
+    var lv = m.levels[session.level];
+    setText('mission-heading', m.door + ' · ' + m.title);
+    setText('terminal-title', 'Terminal de Análisis — ' + lv.title);
+    setText('terminal-points-label', 'Valor del desafío: ' + LEVEL_POINTS[session.level] + ' pts');
+    setText('sidebar-level-title', 'Objetivo del nivel ' + (session.level + 1) + ' (' + LEVEL_NAMES[session.level] + ')');
+    setText('sidebar-level-brief', lv.brief);
+
+    var tabs = $('mission-level-tabs');
+    tabs.replaceChildren();
+    [0, 1, 2].forEach(function (j) {
+      var done = state.missions[session.mission].levels[j];
+      var b = el('button', {
+        class: 'level-tab', type: 'button', id: 'level-tab-' + j, 'data-level': j,
+        disabled: !isLevelUnlocked(state, session.mission, j),
+        'aria-current': j === session.level ? 'step' : null,
+        text: (done ? '✓ ' : '') + 'Nivel ' + (j + 1)
+      });
+      tabs.appendChild(b);
+    });
+
+    renderChallenge();
+    clearFeedback();
+    $('btn-show-hint').disabled = false;
+    show('btn-submit-challenge', true);
+    show('btn-retry-challenge', false);
+    show('btn-next-challenge', false);
+    renderSidebar();
+  }
+
+  function renderContext(ctx) {
+    if (ctx.type === 'email') {
+      return el('div', { class: 'ctx-email', 'aria-label': 'Correo electrónico simulado' },
+        el('div', { class: 'ctx-email-head' },
+          el('div', null, el('span', { text: 'De:' }), ctx.from),
+          el('div', null, el('span', { text: 'Para:' }), ctx.to),
+          el('div', null, el('span', { text: 'Asunto:' }), el('strong', { text: ctx.subject }))),
+        el('div', { class: 'ctx-email-body' }, ctx.body.map(function (p) { return el('p', { text: p }); })));
+    }
+    if (ctx.type === 'log') {
+      return el('pre', { class: 'ctx-log', 'aria-label': 'Registro de eventos simulado', tabindex: '0', text: ctx.lines.join('\n') });
+    }
+    if (ctx.type === 'table') {
+      return el('div', { class: 'table-wrap' }, el('table', null,
+        el('thead', null, el('tr', null, ctx.headers.map(function (h) { return el('th', { scope: 'col', text: h }); }))),
+        el('tbody', null, ctx.rows.map(function (r) { return el('tr', null, r.map(function (c) { return el('td', { text: c }); })); }))));
+    }
+    return null;
+  }
+
+  function renderChallenge() {
+    var lv = currentChallenge();
+    var mount = $('challenge-mount');
+    mount.replaceChildren();
+    mount.setAttribute('data-variant', String(session.variant));
+    mount.setAttribute('data-mission', String(session.mission));
+    mount.setAttribute('data-level', String(session.level));
+    mount.setAttribute('data-type', lv.type);
+
+    appendChild(mount, el('p', { class: 'challenge-kicker', text: 'Nivel ' + (session.level + 1) + ' · ' + LEVEL_NAMES[session.level] + ' · ' + lv.title + ' · Escenario ' + (lv.variant + 1) + '/' + lv.variantCount }));
+    if (lv.context) appendChild(mount, renderContext(lv.context));
+    appendChild(mount, el('h2', { class: 'challenge-prompt', id: 'challenge-prompt', text: lv.prompt }));
+
+    if (lv.type === 'choice' || lv.type === 'multi') {
+      var inputType = lv.type === 'choice' ? 'radio' : 'checkbox';
+      var fs = el('fieldset', { class: 'options-list', 'aria-labelledby': 'challenge-prompt' });
+      session.order.forEach(function (i) {
+        var opt = lv.options[i];
+        fs.appendChild(el('label', { class: 'option', for: 'ans-opt-' + i },
+          el('input', { type: inputType, name: 'cs-answer', id: 'ans-opt-' + i, value: i }),
+          el('span', { text: opt })));
+      });
+      mount.appendChild(fs);
+    } else if (lv.type === 'classify') {
+      var wrap = el('div', { class: 'options-list', role: 'group', 'aria-labelledby': 'challenge-prompt' });
+      session.order.forEach(function (i) {
+        var item = lv.items[i];
+        var sel = el('select', { class: 'select', id: 'cls-' + i, 'aria-label': 'Clasificación de ' + item.label },
+          el('option', { value: '', text: 'Selecciona…' }),
+          lv.categories.map(function (c, k) { return el('option', { value: k, text: c }); }));
+        wrap.appendChild(el('div', { class: 'classify-row' },
+          el('div', null, el('strong', { text: item.label }), el('small', { text: item.detail })), sel));
+      });
+      mount.appendChild(wrap);
+    } else if (lv.type === 'password') {
+      var input = el('input', { class: 'text-input', id: 'pwd-input', type: 'password', maxlength: '64', autocomplete: 'off', spellcheck: 'false', autocapitalize: 'off', 'aria-describedby': 'pwd-label pwd-warning' });
+      var toggle = el('button', { class: 'btn btn-secondary', id: 'pwd-toggle', type: 'button', 'aria-pressed': 'false', text: 'Mostrar' });
+      var checklist = el('ul', { class: 'checklist', id: 'pwd-checklist' },
+        [['length', 'Al menos 12 caracteres'], ['lower', 'Una letra minúscula'], ['upper', 'Una letra mayúscula'], ['digit', 'Un número'],
+          ['symbol', 'Un símbolo (-, !, #, espacio…)'], ['notCommon', 'Sin palabras comunes (password, 123456…)'], ['noRepeat', 'Sin 3 caracteres repetidos seguidos']]
+          .map(function (c) { return el('li', { 'data-check': c[0], text: c[1] }); }));
+      mount.appendChild(el('label', { class: 'input-label', for: 'pwd-input', text: 'Contraseña ficticia' }));
+      mount.appendChild(el('div', { class: 'pwd-row' }, input, toggle));
+      mount.appendChild(el('div', { class: 'meter', 'aria-hidden': 'true' }, el('div', { class: 'meter-fill', id: 'pwd-meter' })));
+      mount.appendChild(el('p', { class: 'meta-line', id: 'pwd-label', 'aria-live': 'polite', text: 'Fortaleza: Muy débil (0/7)' }));
+      mount.appendChild(checklist);
+      mount.appendChild(el('p', { class: 'warning-note', id: 'pwd-warning', text: '⚠ No escribas contraseñas reales. Este valor no se guarda ni se envía a ningún sitio.' }));
+      input.addEventListener('input', updatePasswordMeter);
+      toggle.addEventListener('click', function () {
+        var visible = input.type === 'password';
+        input.type = visible ? 'text' : 'password';
+        toggle.textContent = visible ? 'Ocultar' : 'Mostrar';
+        toggle.setAttribute('aria-pressed', visible ? 'true' : 'false');
+      });
+    }
+  }
+
+  function updatePasswordMeter() {
+    var input = $('pwd-input');
+    if (!input) return;
+    var r = evaluatePassword(input.value);
+    var colors = ['#f43f5e', '#f43f5e', '#f43f5e', '#f59e0b', '#f59e0b', '#eab308', '#22d3ee', '#10b981'];
+    var meter = $('pwd-meter');
+    meter.style.width = Math.round((r.score / 7) * 100) + '%';
+    meter.style.background = colors[r.score];
+    setText('pwd-label', 'Fortaleza: ' + r.label + ' (' + r.score + '/7)');
+    Array.prototype.forEach.call($('pwd-checklist').children, function (li) {
+      li.classList.toggle('ok', r.checks[li.getAttribute('data-check')] === true);
+    });
+  }
+
+  function collectAnswer() {
+    var lv = currentChallenge();
+    var mount = $('challenge-mount');
+    if (lv.type === 'choice') {
+      var c = mount.querySelector('input[name="cs-answer"]:checked');
+      return c ? clampInt(c.value, 0, lv.options.length - 1) : null;
+    }
+    if (lv.type === 'multi') {
+      return Array.prototype.map.call(mount.querySelectorAll('input[name="cs-answer"]:checked'), function (n) { return clampInt(n.value, 0, lv.options.length - 1); });
+    }
+    if (lv.type === 'classify') {
+      return lv.items.map(function (_, i) {
+        var v = $('cls-' + i).value;
+        return v === '' ? null : clampInt(v, 0, lv.categories.length - 1);
+      });
+    }
+    if (lv.type === 'password') {
+      var p = $('pwd-input');
+      return p ? p.value : '';
+    }
+    return null;
+  }
+
+  function setInputsDisabled(disabled) {
+    Array.prototype.forEach.call($('challenge-mount').querySelectorAll('input, select, button'), function (n) { n.disabled = disabled; });
+  }
+
+  function clearFeedback() {
+    var fb = $('feedback-box'); fb.className = 'feedback-box'; fb.replaceChildren();
+    var hb = $('hint-box'); hb.className = 'feedback-box hint'; hb.replaceChildren();
+  }
+
+  function showFeedback(kind, title, body) {
+    var fb = $('feedback-box');
+    fb.className = 'feedback-box show ' + kind;
+    fb.replaceChildren(el('strong', { text: title }), el('span', { text: body }));
+  }
+
+  function renderSidebar() {
+    var ms = state.missions[session.mission];
+    setText('side-score', missionScore(ms) + ' / 100');
+    setText('side-accuracy', ms.hits + ' / ' + ms.errors);
+    setText('side-attempts', ms.attempts);
+    setText('side-time', formatTime(ms.timeSec));
+  }
+
+  function submitChallenge() {
+    if (session.view !== 'mission' || session.solved || session.locked) return;
+    var lv = currentChallenge();
+    var res = checkAnswer(lv, collectAnswer());
+    if (res.incomplete) {
+      showFeedback('warn', 'Respuesta incompleta', res.message);
+      beep('warn');
+      return;
+    }
+    var ms = state.missions[session.mission];
+    ms.attempts += 1;
+    if (res.ok) {
+      ms.hits += 1;
+      session.solved = true;
+      stopTimer();
+      var pts = computeLevelScore(LEVEL_POINTS[session.level], session.hints, session.fails);
+      var prev = ms.levels[session.level] ? ms.best[session.level] : 0;
+      var wasCompleted = missionCompleted(ms);
+      ms.levels[session.level] = true;
+      ms.best[session.level] = Math.max(prev, pts);
+      addHistory('ok', pts);
+      var extra = prev > pts ? ' Tu mejor puntuación en este nivel (' + prev + ' pts) se mantiene.' : '';
+      var unlockMsg = '';
+      if (!wasCompleted && missionCompleted(ms) && session.mission < MISSIONS.length - 1) {
+        unlockMsg = ' ¡Misión completada! Se ha desbloqueado la ' + MISSIONS[session.mission + 1].door + '.';
+      }
+      showFeedback('success', '¡Desafío superado! +' + pts + ' pts', lv.explainOk + extra + unlockMsg);
+      setInputsDisabled(true);
+      $('btn-show-hint').disabled = true;
+      show('btn-submit-challenge', false);
+      var next = $('btn-next-challenge');
+      next.textContent = session.level < 2 ? 'Siguiente nivel' : (completedCount(state) === MISSIONS.length ? 'Ver informe final' : 'Volver a la sala principal');
+      show('btn-next-challenge', true);
+      next.focus();
+      beep('ok');
+    } else {
+      ms.errors += 1;
+      session.fails += 1;
+      session.locked = true;
+      stopTimer();
+      addHistory('fail', 0);
+      showFeedback('error', 'Respuesta incorrecta (-' + FAIL_COST + ' pts en este nivel)', lv.explainFail);
+      setInputsDisabled(true);
+      show('btn-submit-challenge', false);
+      show('btn-retry-challenge', true);
+      $('btn-retry-challenge').focus();
+      beep('err');
+    }
+    persist();
+    renderHUD();
+    renderSidebar();
+    renderLevelTabsState();
+  }
+
+  function renderLevelTabsState() {
+    [0, 1, 2].forEach(function (j) {
+      var b = $('level-tab-' + j);
+      if (!b) return;
+      b.disabled = !isLevelUnlocked(state, session.mission, j);
+      b.textContent = (state.missions[session.mission].levels[j] ? '✓ ' : '') + 'Nivel ' + (j + 1);
+    });
+  }
+
+  function retryChallenge() {
+    if (!session.locked) return;
+    session.locked = false;
+    setInputsDisabled(false);
+    var fb = $('feedback-box'); fb.className = 'feedback-box'; fb.replaceChildren();
+    show('btn-retry-challenge', false);
+    show('btn-submit-challenge', true);
+    startTimer();
+    var first = $('challenge-mount').querySelector('input, select');
+    if (first) first.focus();
+  }
+
+  function requestHint() {
+    if (session.view !== 'mission' || session.solved || session.hints > 0) return;
+    session.hints = 1;
+    state.missions[session.mission].hints += 1;
+    var hb = $('hint-box');
+    hb.className = 'feedback-box hint show';
+    hb.replaceChildren(el('strong', { text: 'Pista (-' + HINT_COST + ' pts)' }), el('span', { text: currentChallenge().hint }));
+    $('btn-show-hint').disabled = true;
+    persist();
+    beep('warn');
+  }
+
+  function nextChallenge() {
+    if (!session.solved) return;
+    if (session.level < 2) openLevel(session.mission, session.level + 1);
+    else if (completedCount(state) === MISSIONS.length) showView('report');
+    else showView('hub');
+  }
+
+  /* ======================= CRONÓMETROS ======================= */
+  function startTimer() {
+    var limit = LEVEL_TIME[session.level];
+    if (!limit) { show('mission-timer-box', false); return; }
+    session.timerLeft = limit;
+    show('mission-timer-box', true);
+    updateTimerUI();
+  }
+  function stopTimer() { session.timerLeft = 0; }
+  function timerActive() { return session.view === 'mission' && session.timerLeft > 0 && !session.solved && !session.locked; }
+  function updateTimerUI() {
+    setText('mission-timer-value', formatTime(session.timerLeft));
+    $('mission-timer-box').classList.toggle('critical', session.timerLeft > 0 && session.timerLeft <= 15);
+  }
+  function onTimeout() {
+    var ms = state.missions[session.mission];
+    ms.attempts += 1; ms.errors += 1;
+    session.fails += 1;
+    session.locked = true;
+    addHistory('timeout', 0);
+    showFeedback('error', 'Se agotó el tiempo', 'No verificaste la solución a tiempo. Repasa el desafío y vuelve a intentarlo; el cronómetro se reiniciará.');
+    setInputsDisabled(true);
+    show('btn-submit-challenge', false);
+    show('btn-retry-challenge', true);
+    persist(); renderHUD(); renderSidebar();
+    beep('err');
+  }
+
+  function tick() {
+    var playing = session.view === 'hub' || session.view === 'mission';
+    if (!playing || document.visibilityState === 'hidden') return;
+    state.totalTime = Math.min(MAX_TIME, state.totalTime + 1);
+    if (session.view === 'mission') {
+      var ms = state.missions[session.mission];
+      ms.timeSec = Math.min(MAX_TIME, ms.timeSec + 1);
+      if (timerActive()) {
+        session.timerLeft -= 1;
+        updateTimerUI();
+        if (session.timerLeft <= 0) onTimeout();
+      }
+      renderSidebar();
+    }
+    renderHUD();
+    session.tickCount += 1;
+    if (session.tickCount % 5 === 0) persist();
+  }
+
+  /* ======================= PUNTUACIONES E INFORME ======================= */
+  function kpi(label, value) {
+    return el('div', { class: 'kpi' }, el('div', { class: 'kpi-label', text: label }), el('div', { class: 'kpi-value', text: value }));
+  }
+  function emptyRow(cols, text) { return el('tr', null, el('td', { class: 'empty', colspan: cols, text: text })); }
+
+  function renderScores() {
+    var acc = accuracy(state);
+    var attempts = 0, hints = 0;
+    state.missions.forEach(function (m) { attempts += m.attempts; hints += m.hints; });
+    $('scores-kpis').replaceChildren(
+      kpi('Puntuación total', totalScore(state) + ' / ' + maxScore()),
+      kpi('Misiones completadas', completedCount(state) + ' / ' + MISSIONS.length),
+      kpi('Precisión', acc.percent + '%'),
+      kpi('Intentos', String(attempts)),
+      kpi('Pistas usadas', String(hints)),
+      kpi('Tiempo total', formatTime(state.totalTime)));
+
+    $('scores-mission-tbody').replaceChildren.apply($('scores-mission-tbody'), MISSIONS.map(function (m, i) {
+      var ms = state.missions[i]; var st = missionStatus(i);
+      return el('tr', null, el('td', { text: m.door + ' · ' + m.title }), el('td', null, el('span', { class: 'state-tag ' + st.cls, text: st.text })),
+        el('td', { class: 'tabular-nums', text: missionScore(ms) + ' / 100' }), el('td', { class: 'tabular-nums', text: ms.hits }),
+        el('td', { class: 'tabular-nums', text: ms.errors }), el('td', { class: 'tabular-nums', text: ms.attempts }),
+        el('td', { class: 'tabular-nums', text: formatTime(ms.timeSec) }));
+    }));
+
+    var hb = $('scores-history-tbody');
+    var rows = state.history.slice(-50).reverse().map(function (h) {
+      var cls = h.result === 'ok' ? 'state-done' : 'state-fail';
+      return el('tr', null, el('td', { class: 'tabular-nums', text: new Date(h.ts).toLocaleString('es-ES') }),
+        el('td', { text: MISSIONS[h.mission].title + ' · Nivel ' + (h.level + 1) }),
+        el('td', null, el('span', { class: 'state-tag ' + cls, text: RESULTS[h.result] })),
+        el('td', { class: 'tabular-nums', text: h.points }), el('td', { class: 'tabular-nums', text: formatTime(h.timeSec) }));
+    });
+    hb.replaceChildren.apply(hb, rows.length ? rows : [emptyRow(5, 'Aún no hay actividad registrada.')]);
+  }
+
+  function renderReport() {
+    var total = totalScore(state);
+    var pct = Math.round((total / maxScore()) * 100);
+    var grade = computeGrade(pct);
+    var acc = accuracy(state);
+    var done = completedCount(state);
+    var hints = 0, attempts = 0;
+    state.missions.forEach(function (m) { hints += m.hints; attempts += m.attempts; });
+
+    $('report-header-card').replaceChildren(el('div', { class: 'report-head' },
+      el('div', null,
+        el('p', { class: 'meta-line', text: done === MISSIONS.length ? 'Informe definitivo' : 'Informe parcial · ' + done + ' de ' + MISSIONS.length + ' misiones completadas' }),
+        el('h2', { id: 'report-student-name', style: 'font-size: 1.5rem; font-weight: 800; margin: 4px 0;', text: state.studentName || 'Invitado' }),
+        el('p', { class: 'meta-line', text: 'Generado el ' + new Date().toLocaleString('es-ES') + ' · ' + pct + '% · ' + grade.label })),
+      el('div', { class: 'grade-badge', id: 'report-grade', 'aria-label': 'Calificación ' + grade.letter + ', ' + grade.label, text: grade.letter })));
+
+    $('report-kpis').replaceChildren(
+      kpi('Puntuación', total + ' / ' + maxScore()), kpi('Porcentaje', pct + '%'), kpi('Precisión', acc.percent + '%'),
+      kpi('Intentos', String(attempts)), kpi('Pistas', String(hints)), kpi('Tiempo total', formatTime(state.totalTime)));
+
+    var weak = [], strong = [];
+    MISSIONS.forEach(function (m, i) {
+      var sc = missionScore(state.missions[i]);
+      if (sc < 70) weak.push(el('div', { class: 'topic-item' }, el('strong', { text: m.title + ' (' + sc + '/100)' }), m.reinforce));
+      else if (sc >= 90) strong.push(el('div', { class: 'topic-item' }, el('strong', { text: m.title + ' (' + sc + '/100)' }), m.topic));
+    });
+    var rl = $('report-reinforce-list'); rl.replaceChildren.apply(rl, weak.length ? weak : [el('p', { class: 'topic-item', text: '¡Ningún tema crítico! Mantén tus conocimientos al día.' })]);
+    var sl = $('report-strengths-list'); sl.replaceChildren.apply(sl, strong.length ? strong : [el('p', { class: 'topic-item', text: 'Completa las salas con 90 puntos o más para registrar fortalezas.' })]);
+
+    var tb = $('report-tbody');
+    tb.replaceChildren.apply(tb, MISSIONS.map(function (m, i) {
+      var ms = state.missions[i]; var sc = missionScore(ms);
+      return el('tr', null, el('td', { text: m.door + ' · ' + m.title }), el('td', { class: 'tabular-nums', text: sc + ' / 100' }),
+        el('td', { text: computeGrade(sc).label }), el('td', { class: 'tabular-nums', text: ms.hits + ' / ' + ms.errors }),
+        el('td', { class: 'tabular-nums', text: ms.attempts }), el('td', { class: 'tabular-nums', text: formatTime(ms.timeSec) }));
+    }));
+  }
+
+  function downloadReport() {
+    var blob = new Blob([buildReportText(state)], { type: 'text/plain;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = el('a', { href: url, download: 'informe-cybershield-' + slugify(state.studentName) + '.txt', rel: 'noopener' });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  /* ======================= MODAL ======================= */
+  function openModal() {
+    lastFocus = document.activeElement;
+    var m = $('confirm-modal');
+    m.classList.add('open');
+    m.setAttribute('aria-hidden', 'false');
+    $('modal-cancel-btn').focus();
+  }
+  function closeModal() {
+    var m = $('confirm-modal');
+    if (!m.classList.contains('open')) return;
+    m.classList.remove('open');
+    m.setAttribute('aria-hidden', 'true');
+    if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+  }
+  function confirmReset() {
+    stopTimer();
+    Store.clear();
+    var keepSound = state.sound;
+    state = defaultState();
+    state.sound = keepSound;
+    persist();
+    closeModal();
+    $('student-name-input').value = '';
+    showView('menu');
+  }
+
+  /* ======================= EVENTOS ======================= */
+  function saveName() {
+    var input = $('student-name-input');
+    var clean = sanitizeName(input.value);
+    input.value = clean;
+    state.studentName = clean;
+    persist();
+  }
+
+  function bind(id, fn) { $(id).addEventListener('click', fn); }
+
+  bind('nav-brand-btn', function () { showView('menu'); });
+  bind('btn-nav-menu', function () { showView('menu'); });
+  bind('btn-nav-hub', function () { showView('hub'); });
+  bind('btn-sound-toggle', function () { state.sound = !state.sound; persist(); renderHUD(); beep('ok'); });
+  bind('btn-start-game', function () { saveName(); showView('hub'); });
+  bind('btn-open-instructions', function () { showView('instructions'); });
+  bind('btn-open-scores', function () { showView('scores'); });
+  bind('btn-inst-back', function () { showView('menu'); });
+  bind('btn-toggle-sandbox', function () { state.sandbox = !state.sandbox; persist(); renderHub(); });
+  bind('btn-hub-report', function () { showView('report'); });
+  bind('btn-hub-scores', function () { showView('scores'); });
+  bind('btn-scores-report', function () { showView('report'); });
+  bind('btn-scores-hub', function () { showView('hub'); });
+  bind('btn-report-hub', function () { showView('hub'); });
+  bind('btn-print-report', function () { window.print(); });
+  bind('btn-download-report', downloadReport);
+  bind('btn-mission-back', function () { showView('hub'); });
+  bind('btn-show-hint', requestHint);
+  bind('btn-submit-challenge', submitChallenge);
+  bind('btn-retry-challenge', retryChallenge);
+  bind('btn-next-challenge', nextChallenge);
+  bind('btn-reset-menu', openModal);
+  bind('btn-hub-reset', openModal);
+  bind('modal-cancel-btn', closeModal);
+  bind('modal-confirm-btn', confirmReset);
+
+  $('student-name-input').addEventListener('change', saveName);
+  $('student-name-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') { saveName(); showView('hub'); } });
+
+  $('doors-grid').addEventListener('click', function (e) {
+    var card = e.target.closest('.door-card');
+    if (!card || card.disabled) return;
+    var mi = clampInt(card.getAttribute('data-mission'), 0, MISSIONS.length - 1);
+    var ms = state.missions[mi];
+    var firstPending = ms.levels.indexOf(false);
+    openLevel(mi, firstPending === -1 ? 0 : (isLevelUnlocked(state, mi, firstPending) ? firstPending : 0));
+  });
+
+  $('mission-level-tabs').addEventListener('click', function (e) {
+    var tab = e.target.closest('.level-tab');
+    if (!tab || tab.disabled) return;
+    openLevel(session.mission, clampInt(tab.getAttribute('data-level'), 0, 2));
+  });
+
+  $('confirm-modal').addEventListener('click', function (e) { if (e.target === e.currentTarget) closeModal(); });
+  document.addEventListener('keydown', function (e) {
+    var modal = $('confirm-modal');
+    if (!modal.classList.contains('open')) return;
+    if (e.key === 'Escape') { e.preventDefault(); closeModal(); return; }
+    if (e.key === 'Tab') {
+      var f = [$('modal-cancel-btn'), $('modal-confirm-btn')];
+      var idx = f.indexOf(document.activeElement);
+      e.preventDefault();
+      f[(idx + (e.shiftKey ? f.length - 1 : 1)) % f.length].focus();
+    }
+  });
+
+  window.addEventListener('pagehide', persist);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') persist(); });
+  window.addEventListener('storage', function (e) {
+    if (e.key === STORAGE_KEY) { state = Store.load(); if (session.view !== 'mission') showView(session.view); }
+  });
+
+  setInterval(tick, 1000);
+
+  /* ======================= ARRANQUE ======================= */
+  renderMenu();
+  renderHUD();
+  document.documentElement.setAttribute('data-ready', 'true');
+})();

@@ -1,0 +1,54 @@
+# Ejecuta las 27 suites de pruebas, mide la cobertura de código y la sube a Coveralls.
+# Se lanza en cada push y pull request (y a mano desde la pestaña Actions).
+# Requisito único: activar el repositorio en https://coveralls.io (no hace falta ningún secreto extra).
+name: Pruebas y cobertura (Coveralls)
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cobertura:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Instalar Chromium para las pruebas
+        run: npx playwright install --with-deps chromium
+
+      - name: Comprobar que CyberShield.html está construido desde src/
+        run: npm run construir:comprobar
+
+      - name: Ejecutar las 27 suites con cobertura
+        run: npm run cobertura
+
+      - name: Subir la cobertura a Coveralls
+        if: ${{ always() && hashFiles('coverage/lcov.info') != '' }}
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: coverage/lcov.info
+          format: lcov
+
+      - name: Guardar el informe HTML de cobertura
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-cobertura
+          path: coverage/
+          retention-days: 14

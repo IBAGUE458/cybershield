@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<title>CyberShield — Cobertura con Coveralls</title>
+<style>
+:root{--bg:#070b14;--s:#111a2e;--b:#1f2c47;--t:#e8eefc;--t2:#b4c0da;--c:#22d3ee}
+@media (prefers-color-scheme: light){:root{--bg:#f6f8fc;--s:#fff;--b:#d8deea;--t:#0f172a;--t2:#334155;--c:#0e7490}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:32px 16px 64px}h1{font-size:1.9rem;margin:0 0 16px}h2{margin-top:36px;border-bottom:1px solid var(--b);padding-bottom:6px}
+p,blockquote,li{color:var(--t2)}code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88em;background:var(--s);border:1px solid var(--b);padding:1px 5px;border-radius:5px}
+pre{background:var(--s);border:1px solid var(--b);border-radius:10px;padding:14px;overflow-x:auto}pre code{border:0;padding:0;background:none}
+blockquote{margin:16px 0;padding:12px 16px;border-left:4px solid var(--c);background:var(--s);border-radius:0 10px 10px 0}
+.tw{overflow-x:auto;margin:12px 0}table{border-collapse:collapse;width:100%;font-size:.92rem;background:var(--s)}th,td{border:1px solid var(--b);padding:8px 10px;text-align:left;vertical-align:top}th{color:var(--c)}a{color:var(--c)}
+</style></head><body><main>
+<h1>CyberShield — Cobertura de código con Coveralls (paso a paso)</h1>
+<h2>¿Qué es la cobertura de código y qué es Coveralls?</h2>
+<p>La <strong>cobertura de código</strong> mide qué parte del código se ejecuta al pasar las pruebas automáticas. Si una línea nunca se ejecuta en ninguna prueba, un fallo en ella pasaría desapercibido.</p>
+<p><strong>Coveralls</strong> (<a href="https://coveralls.io">https://coveralls.io</a>) es un servicio en la nube que recibe el informe de cobertura cada vez que subes cambios a GitHub. Allí puedes:</p>
+<ul><li>ver el porcentaje total y el de cada archivo, línea a línea (verde = probada, rojo = sin probar);</li><li>ver cómo evoluciona con el tiempo y si un cambio la sube o la baja;</li><li>mostrar una insignia (badge) con el porcentaje en tu repositorio.</li></ul>
+<p>Coveralls <strong>no ejecuta las pruebas</strong>: solo recibe el archivo <code>coverage/lcov.info</code> que generan tus pruebas.</p>
+<h2>Qué código se mide</h2>
+<div class="tw"><table><thead><tr><th>Archivo</th><th>Qué es</th><th>Cómo se mide</th></tr></thead><tbody><tr><td><code>src/cybershield.js</code></td><td>Toda la lógica del juego (se ejecuta en el navegador)</td><td>Cobertura V8 de Chromium, medida durante las 27 suites con Playwright y atribuida línea a línea al archivo fuente</td></tr><tr><td><code>servidor.js</code></td><td>El servidor con seguridad y observabilidad</td><td>Cobertura V8 de Node.js con <strong>c8</strong></td></tr></tbody></table></div>
+<p>No se miden las propias pruebas (<code>pruebas/</code>), los scripts de carga (<code>rendimiento/</code>), que ejecutan k6 y JMeter, ni las herramientas de documentación. Es la práctica estándar: se mide el código de la aplicación.</p>
+<h2>Resultado obtenido</h2>
+<div class="tw"><table><thead><tr><th>Archivo</th><th>Líneas</th><th>Sentencias</th><th>Funciones</th><th>Ramas</th></tr></thead><tbody><tr><td><code>src/cybershield.js</code></td><td><strong>99,7 %</strong></td><td>99,7 %</td><td>100 %</td><td>99,3 %</td></tr><tr><td><code>servidor.js</code></td><td><strong>88,3 %</strong></td><td>88,3 %</td><td>95 %</td><td>80,3 %</td></tr><tr><td><strong>Total</strong></td><td><strong>97,6 %</strong></td><td>97,6 %</td><td>98,9 %</td><td>95,4 %</td></tr></tbody></table></div>
+<p>Umbrales mínimos configurados (si no se alcanzan, el comando falla): líneas 80 %, funciones 80 %, ramas 70 %.</p>
+<p><strong>Qué queda sin cubrir y por qué:</strong></p>
+<ul><li><code>src/cybershield.js</code>: el respaldo de <code>Math.random</code> (solo se usaría en un navegador sin <code>crypto</code>), dos <code>return null</code> para tipos de pregunta inexistentes y la sincronización entre pestañas, que ocurre en una segunda pestaña que no se mide.</li><li><code>servidor.js</code>: la parte que arranca el servidor desde la terminal (<code>node servidor.js</code>), la lectura de certificados desde variables de entorno y el error 500 cuando falta <code>CyberShield.html</code>.</li></ul>
+<p><strong>Qué significa cada columna:</strong></p>
+<ul><li><strong>Líneas:</strong> porcentaje de líneas ejecutadas al menos una vez.</li><li><strong>Sentencias:</strong> igual, contando instrucciones (una línea puede tener varias).</li><li><strong>Funciones:</strong> porcentaje de funciones llamadas al menos una vez.</li><li><strong>Ramas:</strong> porcentaje de caminos de cada <code>if</code>, <code>?:</code>, <code>||</code>… que se recorrieron. Es la medida más exigente: un <code>if</code> sin <code>else</code> probado deja una rama sin cubrir.</li></ul>
+<blockquote><strong>Diferencia con el 93,6 % de la suite 09:</strong> aquel número mide solo una partida completa dentro de una prueba. Este mide las <strong>27 suites juntas</strong>: errores, almacenamiento roto, ataques XSS, pruebas aleatorias… Por eso es más alto.</blockquote>
+<h2>Paso 1. Ver la cobertura en tu PC</h2>
+<pre><code>npm install</code></pre>
+<pre><code>npx playwright install chromium</code></pre>
+<pre><code>npm run cobertura</code></pre>
+<p>Ejecuta las 27 suites midiendo la cobertura (tarda unos 4 minutos) y genera:</p>
+<ul><li><code>coverage/index.html</code>: ábrelo con doble clic para navegar archivo a archivo y línea a línea.</li><li><code>coverage/lcov.info</code>: el archivo que se sube a Coveralls.</li></ul>
+<h2>Paso 2. Subir el proyecto a GitHub</h2>
+<p>Coveralls trabaja con repositorios de GitHub (también GitLab y Bitbucket).</p>
+<ol><li>Crea una cuenta en <a href="https://github.com">https://github.com</a> si no la tienes.</li><li>Pulsa <strong>New repository</strong>, ponle el nombre <code>cybershield</code>, elige <strong>Public</strong> o <strong>Private</strong> y pulsa <strong>Create repository</strong>. No marques "Add a README".</li><li>En la carpeta del proyecto ejecuta, uno a uno (cambia <code>TU_USUARIO</code>):</li></ol>
+<pre><code>git init</code></pre>
+<pre><code>git add .</code></pre>
+<pre><code>git commit -m "CyberShield con pruebas y cobertura"</code></pre>
+<pre><code>git branch -M main</code></pre>
+<pre><code>git remote add origin https://github.com/TU_USUARIO/cybershield.git</code></pre>
+<pre><code>git push -u origin main</code></pre>
+<blockquote>El archivo <code>.gitignore</code> ya evita subir <code>node_modules/</code>, <code>coverage/</code>, los <code>.zip</code> y los resultados pesados de rendimiento. Si prefieres no usar la terminal, puedes usar <strong>GitHub Desktop</strong>: *Add local repository* → *Publish repository*.</blockquote>
+<h2>Paso 3. Activar el repositorio en Coveralls</h2>
+<ol><li>Entra en <a href="https://coveralls.io">https://coveralls.io</a> y pulsa <strong>Sign in</strong> → <strong>GitHub</strong>. Autoriza a Coveralls.</li><li>En el menú, ve a <strong>Add Repos</strong>.</li><li>Busca <code>cybershield</code> y activa el interruptor (<strong>ON</strong>). Si no aparece, pulsa *Sync repos*. Si es privado, puede que tengas que conceder acceso a repositorios privados.</li></ol>
+<h2>Paso 4. Ejecutar el flujo automático (GitHub Actions)</h2>
+<p>El proyecto ya incluye <code>.github/workflows/cobertura.yml</code>. En cada <code>push</code>:</p>
+<ol><li>GitHub instala Node.js 22, las dependencias y Chromium.</li><li>Comprueba que <code>CyberShield.html</code> está construido desde <code>src/</code>.</li><li>Ejecuta <code>npm run cobertura</code>: las 27 suites con medición de cobertura.</li><li><strong>Sube <code>coverage/lcov.info</code> a Coveralls</strong> con la acción oficial <code>coverallsapp/github-action@v2</code>. Usa el token automático de GitHub, así que <strong>no necesitas configurar ningún secreto</strong>.</li><li>Guarda el informe HTML como artefacto descargable.</li></ol>
+<p>Para lanzarlo:</p>
+<ul><li>Haz cualquier <code>push</code>, o</li><li>ve a la pestaña <strong>Actions</strong> del repositorio → <strong>Pruebas y cobertura (Coveralls)</strong> → <strong>Run workflow</strong>.</li></ul>
+<p>Cuando termine (unos 5–8 minutos), abre tu repositorio en <a href="https://coveralls.io">https://coveralls.io</a> y verás el porcentaje, el detalle por archivo y el historial.</p>
+<h2>Paso 5. Añadir la insignia (badge) al README</h2>
+<p>En Coveralls, dentro de tu repositorio, pulsa <strong>Badge URLs</strong> y copia la versión Markdown. Tiene esta forma:</p>
+<pre><code>[![Coverage Status](https://coveralls.io/repos/github/TU_USUARIO/cybershield/badge.svg?branch=main)](https://coveralls.io/github/TU_USUARIO/cybershield?branch=main)</code></pre>
+<p>Pégala al principio de <code>README.md</code> y haz <code>push</code>.</p>
+<h2>Alternativa: subir la cobertura desde tu PC (sin GitHub Actions)</h2>
+<p>El repositorio tiene que estar igualmente activado en Coveralls (pasos 2 y 3).</p>
+<ol><li>En Coveralls, abre tu repositorio → <strong>Settings</strong> y copia el <strong>Repo Token</strong>. Es secreto: no lo subas a GitHub ni lo pegues en chats.</li><li>Descarga el *Coveralls Coverage Reporter* desde <a href="https://github.com/coverallsapp/coverage-reporter/releases">https://github.com/coverallsapp/coverage-reporter/releases</a> (en Windows: <code>coveralls-windows.exe</code>).</li><li>En la carpeta del proyecto (Windows <code>cmd</code>, con tu token):</li></ol>
+<pre><code>set COVERALLS_REPO_TOKEN=tu_repo_token</code></pre>
+<pre><code>npm run cobertura</code></pre>
+<pre><code>coveralls-windows.exe report coverage\lcov.info</code></pre>
+<h2>Problemas frecuentes</h2>
+<div class="tw"><table><thead><tr><th>Problema</th><th>Solución</th></tr></thead><tbody><tr><td>El flujo falla en "Instalar dependencias"</td><td>Asegúrate de subir <code>package-lock.json</code> (no está en <code>.gitignore</code>)</td></tr><tr><td>Coveralls dice *"Couldn't find a repository matching this job"*</td><td>El repositorio no está activado en coveralls.io (paso 3)</td></tr><tr><td><code>npm run cobertura</code> falla con "Cobertura por debajo del mínimo"</td><td>Alguna prueba dejó de ejecutar código. Revisa <code>coverage/index.html</code> para ver qué líneas quedan en rojo</td></tr><tr><td>Error de Playwright "Executable doesn't exist"</td><td>Ejecuta <code>npx playwright install chromium</code></td></tr><tr><td>La cobertura de <code>src/cybershield.js</code> no aparece</td><td>Ejecuta <code>npm run construir</code>: <code>CyberShield.html</code> debe estar construido desde <code>src/</code></td></tr></tbody></table></div>
+</main></body></html>

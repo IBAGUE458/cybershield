@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-RnMjzKpC/ymiCovVtknAHbCZ9yMWwqsEOMq9TTP+ogk='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta name="referrer" content="no-referrer" />
+  <meta name="description" content="Escape room educativo de ciberseguridad con cinco salas: phishing, contraseñas, malware, redes y forense." />
+  <title>CyberShield — Escape Room Educativo de Ciberseguridad</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /*@@CSS@@*/
+  </style>
+</head>
+<body>
+  <noscript>
+    <p style="padding: 24px; color: #fff; background: #7f1d1d;">CyberShield necesita JavaScript activado para funcionar.</p>
+  </noscript>
+  <div class="app-shell">
+    <!-- BARRA SUPERIOR DE NAVEGACIÓN -->
+    <header class="topbar" id="topbar">
+      <button class="topbar-brand" id="nav-brand-btn" type="button" title="Volver al menú principal">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 2L4 5.5V11.5C4 16.8 7.4 21.6 12 23C16.6 21.6 20 16.8 20 11.5V5.5L12 2Z" stroke="#22d3ee" stroke-width="1.8" fill="rgba(34,211,238,0.12)"/>
+          <path d="M9.5 12L11.2 13.7L15 9.8" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>CyberShield</span>
+      </button>
+
+      <div class="topbar-metrics" id="hud-metrics">
+        <span class="tabular-nums" id="hud-progress">Misiones: 0/5</span>
+        <span class="topbar-sep" aria-hidden="true">·</span>
+        <span class="tabular-nums" id="hud-score">Puntos: 0/500</span>
+        <span class="topbar-sep" aria-hidden="true">·</span>
+        <span class="tabular-nums" id="hud-time">Tiempo: 00:00</span>
+      </div>
+
+      <div class="topbar-actions">
+        <button class="btn btn-ghost" id="btn-sound-toggle" type="button" aria-label="Alternar sonido">Sonido: Activo</button>
+        <button class="btn btn-secondary" id="btn-nav-hub" type="button">Sala Principal</button>
+        <button class="btn btn-ghost" id="btn-nav-menu" type="button">Menú</button>
+      </div>
+    </header>
+
+    <main class="main-container">
+      <!-- VISTA 1: MENÚ PRINCIPAL -->
+      <section class="view active" id="view-menu" aria-labelledby="menu-heading">
+        <div class="menu-grid">
+          <div>
+            <div class="hero-emblem-wrap">
+              <svg width="42" height="42" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 2L4 5.5V11.5C4 16.8 7.4 21.6 12 23C16.6 21.6 20 16.8 20 11.5V5.5L12 2Z" stroke="#22d3ee" stroke-width="1.7" fill="rgba(34,211,238,0.12)"/>
+                <rect x="9" y="10" width="6" height="5" rx="1" stroke="#10b981" stroke-width="1.6"/>
+                <path d="M10.5 10V8.5C10.5 7.67 11.17 7 12 7C12.83 7 13.5 7.67 13.5 8.5V10" stroke="#10b981" stroke-width="1.6"/>
+              </svg>
+              <span class="meta-line">Entrenamiento interactivo · Escenarios ficticios y aislados</span>
+            </div>
+
+            <h1 class="hero-title" id="menu-heading" tabindex="-1">Escape Room de Ciberseguridad</h1>
+            <p class="hero-desc">
+              Explora cinco salas de contención digital, analiza amenazas reales en entornos simulados y supera desafíos prácticos de phishing, contraseñas, malware, redes e informática forense para asegurar la infraestructura.
+            </p>
+
+            <div class="student-profile-box">
+              <label class="input-label" for="student-name-input">Nombre del estudiante (para el informe final)</label>
+              <input class="text-input" id="student-name-input" type="text" maxlength="48" placeholder="Ej. Sofía Martínez" autocomplete="off" spellcheck="false" />
+            </div>
+
+            <div class="menu-actions">
+              <button class="btn btn-primary" id="btn-start-game" type="button">Iniciar partida</button>
+              <button class="btn btn-secondary" id="btn-open-instructions" type="button">Instrucciones</button>
+              <button class="btn btn-secondary" id="btn-open-scores" type="button">Ver puntuaciones</button>
+              <button class="btn btn-danger" id="btn-reset-menu" type="button" style="grid-column: 1 / -1;">Reiniciar partida</button>
+            </div>
+          </div>
+
+          <div class="menu-console">
+            <div class="menu-console-header">
+              <div>
+                <h2 style="font-size: 1.05rem; font-weight: 700;">Mapa de Puertas de Contención</h2>
+                <p style="font-size: 0.84rem; color: var(--text-muted);" id="menu-summary-line">Progreso guardado automáticamente en este navegador</p>
+              </div>
+              <span class="tabular-nums state-tag state-open" id="menu-completion-tag">0 / 5</span>
+            </div>
+            <div class="door-preview-list" id="menu-door-preview"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VISTA 2: INSTRUCCIONES -->
+      <section class="view" id="view-instructions" aria-labelledby="inst-heading">
+        <div class="hub-header">
+          <div>
+            <h1 class="section-title" id="inst-heading" tabindex="-1">Instrucciones del Escape Room</h1>
+            <p class="section-subtitle">Cómo superar las cinco salas de seguridad, aprovechar las pistas y obtener tu certificación.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-inst-back" type="button">Volver al menú</button>
+        </div>
+
+        <div class="doors-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+          <article class="panel">
+            <h2 style="font-size: 1.08rem; font-weight: 700; margin-bottom: 10px;">1. Progresión por Puertas</h2>
+            <p style="font-size: 0.92rem; color: var(--text-secondary);">
+              Comienzas en la sala principal con la Puerta 1 (Phishing) desbloqueada. Al superar los 3 niveles de dificultad de una misión, desbloquearás la siguiente puerta. Si eres docente o evaluador, puedes activar el modo de acceso libre en la sala principal.
+            </p>
+          </article>
+          <article class="panel">
+            <h2 style="font-size: 1.08rem; font-weight: 700; margin-bottom: 10px;">2. Desafíos Prácticos y Cronómetro</h2>
+            <p style="font-size: 0.92rem; color: var(--text-secondary);">
+              Cada misión incluye 3 niveles progresivos (Básico, Intermedio y Avanzado). Encontrarás inspectores de correo, constructores de contraseñas, monitores de procesos, mapas de red, cortafuegos y analizadores de logs. Los niveles 2 y 3 cuentan con límite de tiempo.
+            </p>
+          </article>
+          <article class="panel">
+            <h2 style="font-size: 1.08rem; font-weight: 700; margin-bottom: 10px;">3. Pistas, Reintentos y Evaluación</h2>
+            <p style="font-size: 0.92rem; color: var(--text-secondary);">
+              Si cometes un error, CyberShield te explicará por qué fallaste y podrás volver a intentarlo. Puedes solicitar una pista contextual (-5 puntos). Al terminar las 5 puertas obtendrás una calificación final y un informe con tus temas a reforzar.
+            </p>
+          </article>
+          <article class="panel">
+            <h2 style="font-size: 1.08rem; font-weight: 700; margin-bottom: 10px;">4. Seguridad y Entorno Aislado</h2>
+            <p style="font-size: 0.92rem; color: var(--text-secondary);">
+              Todos los correos, direcciones IP, archivos, contraseñas y registros pertenecen a escenarios ficticios y seguros. Nunca introduzcas tus contraseñas reales en el simulador. Tu progreso se guarda localmente mediante LocalStorage.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <!-- VISTA 3: SALA PRINCIPAL (PASILLO DE 5 PUERTAS) -->
+      <section class="view" id="view-hub" aria-labelledby="hub-heading">
+        <div class="hub-header">
+          <div>
+            <h1 class="section-title" id="hub-heading" tabindex="-1">Sala Principal de Contención</h1>
+            <p class="section-subtitle">Selecciona una puerta digital desbloqueada para iniciar o repasar la misión correspondiente.</p>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-secondary" id="btn-toggle-sandbox" type="button">Desbloquear todas las puertas</button>
+            <button class="btn btn-emerald" id="btn-hub-report" type="button">Ver informe final</button>
+          </div>
+        </div>
+
+        <div class="progress-panel">
+          <div class="progress-top">
+            <div class="meta-line">
+              <strong style="color: var(--text-primary);" id="hub-student-label">Estudiante: Invitado</strong>
+              <span aria-hidden="true">·</span>
+              <span class="tabular-nums" id="hub-progress-text">0 de 5 misiones completadas (0%)</span>
+            </div>
+            <div class="meta-line tabular-nums">
+              <span id="hub-total-score">Puntuación total: 0 / 500</span>
+              <span aria-hidden="true">·</span>
+              <span id="hub-grade-preview">Calificación: Pendiente</span>
+            </div>
+          </div>
+          <div class="progress-track" role="progressbar" aria-label="Progreso de misiones" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="hub-progressbar">
+            <div class="progress-fill" id="hub-progress-fill"></div>
+          </div>
+        </div>
+
+        <div class="doors-grid" id="doors-grid"></div>
+
+        <div class="hub-footer-bar">
+          <div class="meta-line">
+            <span>Progreso guardado automáticamente en este dispositivo</span>
+            <span aria-hidden="true">·</span>
+            <span id="hub-unlock-mode-label">Modo: Progresión por salas</span>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-secondary" id="btn-hub-scores" type="button">Ver puntuaciones</button>
+            <button class="btn btn-danger" id="btn-hub-reset" type="button">Reiniciar partida</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- VISTA 4: COMPUTADOR VIRTUAL DE MISIÓN -->
+      <section class="view" id="view-mission" aria-labelledby="mission-heading">
+        <div class="mission-topbar">
+          <div>
+            <button class="btn btn-ghost" id="btn-mission-back" type="button" style="margin-bottom: 6px; padding-left: 4px;">
+              ← Volver a la sala principal
+            </button>
+            <h1 class="section-title" id="mission-heading" tabindex="-1">Misión</h1>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div class="level-tabs" id="mission-level-tabs" role="group" aria-label="Niveles de la misión"></div>
+            <div class="timer-box tabular-nums" id="mission-timer-box" style="display: none;" role="timer" aria-live="off">
+              <span>Tiempo límite:</span>
+              <span id="mission-timer-value">01:30</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mission-workspace">
+          <div class="computer-frame">
+            <div class="computer-header">
+              <span id="terminal-title">Terminal de Análisis</span>
+              <span class="tabular-nums" id="terminal-points-label">Valor del desafío: 30 pts</span>
+            </div>
+            <div class="computer-body">
+              <div id="challenge-mount"></div>
+
+              <div class="feedback-box hint" id="hint-box" role="status"></div>
+              <div class="feedback-box" id="feedback-box" role="alert"></div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+                <button class="btn btn-amber" id="btn-show-hint" type="button">Solicitar pista (-5 pts)</button>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                  <button class="btn btn-secondary" id="btn-retry-challenge" type="button" style="display: none;">Volver a intentar</button>
+                  <button class="btn btn-primary" id="btn-submit-challenge" type="button">Verificar solución</button>
+                  <button class="btn btn-emerald" id="btn-next-challenge" type="button" style="display: none;">Siguiente nivel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <aside class="briefing-sidebar">
+            <div class="panel">
+              <h2 style="font-size: 1rem; font-weight: 700; margin-bottom: 8px;" id="sidebar-level-title">Objetivo del nivel</h2>
+              <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.55;" id="sidebar-level-brief"></p>
+            </div>
+
+            <div class="panel">
+              <h2 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 12px;">Registro de la Misión</h2>
+              <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.88rem;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">Puntuación actual</span>
+                  <strong class="tabular-nums" id="side-score">0 / 100</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">Aciertos / Errores</span>
+                  <strong class="tabular-nums" id="side-accuracy">0 / 0</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">Intentos realizados</span>
+                  <strong class="tabular-nums" id="side-attempts">0</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">Tiempo en misión</span>
+                  <strong class="tabular-nums" id="side-time">00:00</strong>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- VISTA 5: PUNTUACIONES E HISTORIAL -->
+      <section class="view" id="view-scores" aria-labelledby="scores-heading">
+        <div class="hub-header">
+          <div>
+            <h1 class="section-title" id="scores-heading" tabindex="-1">Registro de Puntuaciones</h1>
+            <p class="section-subtitle">Estadísticas detalladas de rendimiento, precisión, intentos y misiones completadas.</p>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-emerald" id="btn-scores-report" type="button">Ver informe final</button>
+            <button class="btn btn-primary" id="btn-scores-hub" type="button">Ir a la sala principal</button>
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="scores-kpis"></div>
+
+        <div class="panel" style="margin-bottom: 24px;">
+          <h2 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 14px;">Rendimiento por Misión</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Misión</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Puntuación</th>
+                  <th scope="col">Aciertos</th>
+                  <th scope="col">Errores</th>
+                  <th scope="col">Intentos</th>
+                  <th scope="col">Tiempo</th>
+                </tr>
+              </thead>
+              <tbody id="scores-mission-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 14px;">Historial de Actividad</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Fecha y hora</th>
+                  <th scope="col">Misión</th>
+                  <th scope="col">Resultado</th>
+                  <th scope="col">Puntos obtenidos</th>
+                  <th scope="col">Tiempo</th>
+                </tr>
+              </thead>
+              <tbody id="scores-history-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VISTA 6: INFORME FINAL DEL ESTUDIANTE -->
+      <section class="view" id="view-report" aria-labelledby="report-heading">
+        <div class="hub-header no-print">
+          <div>
+            <h1 class="section-title" id="report-heading" tabindex="-1">Informe Final de Evaluación</h1>
+            <p class="section-subtitle">Resumen de desempeño en CyberShield y recomendaciones personalizadas de estudio.</p>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-secondary" id="btn-print-report" type="button">Imprimir / Guardar PDF</button>
+            <button class="btn btn-secondary" id="btn-download-report" type="button">Descargar resumen (.txt)</button>
+            <button class="btn btn-primary" id="btn-report-hub" type="button">Volver a la sala</button>
+          </div>
+        </div>
+
+        <div class="panel panel-glow" style="margin-bottom: 24px;" id="report-header-card"></div>
+        <div class="kpi-grid" id="report-kpis"></div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 22px; margin-bottom: 24px;">
+          <div class="panel">
+            <h2 style="font-size: 1.08rem; font-weight: 700; margin-bottom: 12px;">Temas que debes reforzar</h2>
+            <div id="report-reinforce-list"></div>
+          </div>
+          <div class="panel">
+            <h2 style="font-size: 1.08rem; font-weight: 700; margin-bottom: 12px;">Fortalezas demostradas</h2>
+            <div id="report-strengths-list"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2 style="font-size: 1.08rem; font-weight: 700; margin-bottom: 14px;">Desglose completo por sala</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Sala / Misión</th>
+                  <th scope="col">Puntuación</th>
+                  <th scope="col">Rendimiento</th>
+                  <th scope="col">Aciertos / Errores</th>
+                  <th scope="col">Intentos</th>
+                  <th scope="col">Tiempo</th>
+                </tr>
+              </thead>
+              <tbody id="report-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL DE CONFIRMACIÓN IN-APP -->
+  <div class="modal-backdrop" id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-desc" aria-hidden="true">
+    <div class="modal-card">
+      <h2 id="modal-title" style="font-size: 1.15rem; font-weight: 700; margin-bottom: 10px;">Reiniciar partida</h2>
+      <p id="modal-desc" style="font-size: 0.94rem; color: var(--text-secondary); margin-bottom: 22px; line-height: 1.55;">
+        Se eliminará todo tu progreso, puntuaciones e historial guardados en este navegador. Esta acción no se puede deshacer.
+      </p>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn btn-secondary" id="modal-cancel-btn" type="button">Cancelar</button>
+        <button class="btn btn-danger" id="modal-confirm-btn" type="button">Confirmar reinicio</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    //@@JS@@
+  </script>
+</body>
+</html>

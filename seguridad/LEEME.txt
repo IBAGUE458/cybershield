@@ -1,0 +1,4 @@
+Aquí se guardan los resultados de Snyk:
+  snyk-dependencias.json / .html  -> análisis de librerías (snyk test)
+  snyk-codigo.json / .html        -> análisis estático del código (snyk code test)
+Ejecuta seguridad\ejecutar-snyk.bat (Windows) o sh seguridad/ejecutar-snyk.sh (Mac/Linux).

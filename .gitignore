@@ -1,0 +1,7 @@
+node_modules/
+coverage/
+*.zip
+# Resultados pesados de las pruebas de rendimiento (se regeneran con: node rendimiento/ejecutar.js todo)
+rendimiento/resultados/*
+!rendimiento/resultados/LEEME.txt
+!rendimiento/resultados/INFORME-CONSOLIDADO.html

@@ -1,0 +1,16 @@
+# Política de Snyk para CyberShield (https://docs.snyk.io)
+#
+# El CÓDIGO FUENTE del juego está en src/ (cybershield.js, cybershield.css, plantilla.html) y Snyk Code lo
+# analiza completo, como JavaScript. CyberShield.html es el archivo CONSTRUIDO a partir de src/
+# (npm run construir): se excluye para no analizar dos veces el mismo código ni duplicar hallazgos.
+#
+# rendimiento/resultados/ contiene informes generados por k6 y JMeter con librerías de terceros
+# minificadas (jQuery, Bootstrap…) que no forman parte del proyecto.
+#
+# Para ver qué analiza Snyk y qué no:  npm run snyk:cobertura
+version: v1.25.0
+exclude:
+  global:
+    - CyberShield.html
+    - rendimiento/resultados/**
+    - node_modules/**

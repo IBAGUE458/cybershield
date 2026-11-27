@@ -1,0 +1,92 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>Cobertura de Snyk</title>
+<style>:root{--bg:#f6f8fc;--s:#fff;--b:#d8deea;--t:#0f172a;--t2:#334155;--c:#0e7490;--ok:#047857;--ko:#be123c;--av:#b45309;--mu:#64748b}
+@media (prefers-color-scheme: dark){:root{--bg:#070b14;--s:#111a2e;--b:#1f2c47;--t:#e8eefc;--t2:#b4c0da;--c:#22d3ee;--ok:#10b981;--ko:#f43f5e;--av:#f59e0b;--mu:#8492b0}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}main{max-width:1180px;margin:0 auto;padding:28px 16px 60px}
+h1{font-size:1.6rem;margin:0 0 6px}h2{font-size:1.15rem;margin:30px 0 10px;border-bottom:2px solid var(--b);padding-bottom:5px}p,li{color:var(--t2)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:16px 0}.kpi{background:var(--s);border:1px solid var(--b);border-radius:12px;padding:14px}.kpi small{display:block;color:var(--mu)}.kpi b{font:700 1.5rem ui-monospace,Menlo,Consolas,monospace}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;background:var(--s);font-size:.86rem}th,td{border:1px solid var(--b);padding:7px 9px;text-align:left;vertical-align:top}th{color:var(--c)}
+.ok{color:var(--ok);font-weight:700}.ko{color:var(--ko);font-weight:700}.av{color:var(--av);font-weight:700}.mu{color:var(--mu);font-weight:700}code{font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all}td:last-child{min-width:240px}</style></head>
+<body><main><h1>Prueba de cobertura de Snyk · CyberShield</h1><p>Generado el 27/11/2026, 4:31:36. Inventario de todo el código del proyecto y qué parte analiza cada producto de Snyk.</p>
+<div class="kpis"><div class="kpi"><small>Cobertura del código JavaScript (lógica)</small><b class="ok">100.0 %</b></div>
+<div class="kpi"><small>Líneas JS analizadas por Snyk Code</small><b>4294</b></div>
+<div class="kpi"><small>Líneas JS solo en HTML (parcial)</small><b class="ok">0</b></div>
+<div class="kpi"><small>Archivos de código cubiertos</small><b>47 / 69</b></div></div>
+<h2>Cómo se calcula</h2><ul>
+<li><b>Cobertura del código JavaScript:</b> líneas de JavaScript que están en archivos <code>.js</code> analizados por Snyk Code, divididas entre todas las líneas de JavaScript del proyecto (incluido el que está incrustado en <code>&lt;script&gt;</code> dentro de HTML). Es la cifra importante, porque ahí está la lógica que puede tener vulnerabilidades.</li>
+<li><b>Archivos de código cubiertos:</b> archivos analizados por algún producto de Snyk, divididos entre todos los archivos de código no excluidos. Los scripts <code>.bat</code>/<code>.sh</code>, la configuración YAML, el plan de JMeter y el CSS no son tipos que Snyk Code analice.</li>
+<li><b>ℹ No aplica:</b> tipos de archivo que Snyk Code no analiza por diseño (no son código de la aplicación). No es un fallo de seguridad ni de cobertura.</li>
+<li><b>Excluidos (.snyk):</b> <code>CyberShield.html</code>, <code>rendimiento/resultados/**</code>, <code>node_modules/**</code>.</li></ul>
+<h2>Detalle por archivo</h2><div class="tw"><table><tr><th>Archivo</th><th>Tipo</th><th>Líneas</th><th>Líneas JS</th><th>Estado</th><th>Producto Snyk</th><th>Motivo</th></tr><tr><td><code>CyberShield.html</code></td><td>HTML</td><td>2050</td><td>1483</td>
+<td class="mu">— Excluido</td><td>—</td><td>Archivo construido a partir de src/: su código se analiza en src/ (excluido en .snyk para no duplicar hallazgos)</td></tr><tr><td><code>ejecutar-pruebas.bat</code></td><td>Batch (Windows)</td><td>8</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Script de Windows: Snyk Code no analiza Batch (solo lanza comandos del proyecto)</td></tr><tr><td><code>ejecutar-pruebas.sh</code></td><td>Shell</td><td>3</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Script de terminal: Snyk Code no analiza Shell (solo lanza comandos del proyecto)</td></tr><tr><td><code>GUIA-RENDIMIENTO.html</code></td><td>HTML</td><td>69</td><td></td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>GUIA-SNYK.html</code></td><td>HTML</td><td>104</td><td></td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>GUIA.html</code></td><td>HTML</td><td>49</td><td></td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>herramientas/actualizar-csp.js</code></td><td>JavaScript</td><td>37</td><td>37</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>herramientas/cobertura-snyk.js</code></td><td>JavaScript</td><td>184</td><td>184</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>herramientas/construir.js</code></td><td>JavaScript</td><td>51</td><td>51</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>herramientas/md-a-html.js</code></td><td>JavaScript</td><td>65</td><td>65</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>INFORME-RENDIMIENTO-CyberShield.html</code></td><td>HTML</td><td>221</td><td></td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>iniciar-servidor.bat</code></td><td>Batch (Windows)</td><td>5</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Script de Windows: Snyk Code no analiza Batch (solo lanza comandos del proyecto)</td></tr><tr><td><code>iniciar-servidor.sh</code></td><td>Shell</td><td>4</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Script de terminal: Snyk Code no analiza Shell (solo lanza comandos del proyecto)</td></tr><tr><td><code>observabilidad/alertas.yml</code></td><td>YAML</td><td>28</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Configuración YAML (Prometheus / Grafana): Snyk Code no la analiza</td></tr><tr><td><code>observabilidad/docker-compose.yml</code></td><td>YAML</td><td>31</td><td></td>
+<td class="ok">✔ Otro producto</td><td>Snyk Container</td><td>Snyk Code no lee YAML. Sus imágenes se analizan con: snyk container test prom/prometheus:v2.54.1 · snyk container test grafana/grafana:11.2.0</td></tr><tr><td><code>observabilidad/grafana/dashboards/cybershield.json</code></td><td>JSON</td><td>534</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Datos/configuración JSON (panel de Grafana): no es código ejecutable</td></tr><tr><td><code>observabilidad/grafana/provisioning/dashboards/dashboards.yml</code></td><td>YAML</td><td>7</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Configuración YAML (Prometheus / Grafana): Snyk Code no la analiza</td></tr><tr><td><code>observabilidad/grafana/provisioning/datasources/prometheus.yml</code></td><td>YAML</td><td>8</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Configuración YAML (Prometheus / Grafana): Snyk Code no la analiza</td></tr><tr><td><code>observabilidad/prometheus.yml</code></td><td>YAML</td><td>14</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Configuración YAML (Prometheus / Grafana): Snyk Code no la analiza</td></tr><tr><td><code>package-lock.json</code></td><td>JSON</td><td>44</td><td></td>
+<td class="ok">✔ Analizado</td><td>Snyk Open Source</td><td>Manifiesto de dependencias analizado con snyk test (SCA)</td></tr><tr><td><code>package.json</code></td><td>JSON</td><td>38</td><td></td>
+<td class="ok">✔ Analizado</td><td>Snyk Open Source</td><td>Manifiesto de dependencias analizado con snyk test (SCA)</td></tr><tr><td><code>pruebas/01-unitarias.test.js</code></td><td>JavaScript</td><td>59</td><td>59</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/02-integracion.test.js</code></td><td>JavaScript</td><td>36</td><td>36</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/03-sistema.test.js</code></td><td>JavaScript</td><td>118</td><td>118</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/04-aceptacion.test.js</code></td><td>JavaScript</td><td>48</td><td>48</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/05-funcionales.test.js</code></td><td>JavaScript</td><td>71</td><td>71</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/06-regresion.test.js</code></td><td>JavaScript</td><td>62</td><td>62</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/07-humo.test.js</code></td><td>JavaScript</td><td>24</td><td>24</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/08-cordura.test.js</code></td><td>JavaScript</td><td>26</td><td>26</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/09-caja-blanca.test.js</code></td><td>JavaScript</td><td>113</td><td>113</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/10-caja-negra.test.js</code></td><td>JavaScript</td><td>40</td><td>40</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/11-caja-gris.test.js</code></td><td>JavaScript</td><td>33</td><td>33</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/12-rendimiento.test.js</code></td><td>JavaScript</td><td>41</td><td>41</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/13-carga.test.js</code></td><td>JavaScript</td><td>36</td><td>36</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/14-estres.test.js</code></td><td>JavaScript</td><td>56</td><td>56</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/15-seguridad.test.js</code></td><td>JavaScript</td><td>86</td><td>86</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/16-penetracion.test.js</code></td><td>JavaScript</td><td>69</td><td>69</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/17-usabilidad.test.js</code></td><td>JavaScript</td><td>37</td><td>37</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/18-accesibilidad.test.js</code></td><td>JavaScript</td><td>58</td><td>58</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/19-compatibilidad.test.js</code></td><td>JavaScript</td><td>44</td><td>44</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/20-interfaz-grafica.test.js</code></td><td>JavaScript</td><td>46</td><td>46</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/21-responsive.test.js</code></td><td>JavaScript</td><td>35</td><td>35</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/22-recuperacion.test.js</code></td><td>JavaScript</td><td>56</td><td>56</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/23-persistencia.test.js</code></td><td>JavaScript</td><td>71</td><td>71</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/24-valores-limite.test.js</code></td><td>JavaScript</td><td>55</td><td>55</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/25-particion-equivalencia.test.js</code></td><td>JavaScript</td><td>44</td><td>44</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/26-monkey.test.js</code></td><td>JavaScript</td><td>41</td><td>41</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/27-extremo-a-extremo.test.js</code></td><td>JavaScript</td><td>47</td><td>47</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>pruebas/ayudantes.js</code></td><td>JavaScript</td><td>115</td><td>115</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>rendimiento/ejecutar-jmeter.bat</code></td><td>Batch (Windows)</td><td>5</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Script de Windows: Snyk Code no analiza Batch (solo lanza comandos del proyecto)</td></tr><tr><td><code>rendimiento/ejecutar-jmeter.sh</code></td><td>Shell</td><td>3</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Script de terminal: Snyk Code no analiza Shell (solo lanza comandos del proyecto)</td></tr><tr><td><code>rendimiento/ejecutar-k6.bat</code></td><td>Batch (Windows)</td><td>7</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Script de Windows: Snyk Code no analiza Batch (solo lanza comandos del proyecto)</td></tr><tr><td><code>rendimiento/ejecutar-k6.sh</code></td><td>Shell</td><td>3</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Script de terminal: Snyk Code no analiza Shell (solo lanza comandos del proyecto)</td></tr><tr><td><code>rendimiento/ejecutar-todo.bat</code></td><td>Batch (Windows)</td><td>8</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Script de Windows: Snyk Code no analiza Batch (solo lanza comandos del proyecto)</td></tr><tr><td><code>rendimiento/ejecutar-todo.sh</code></td><td>Shell</td><td>3</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Script de terminal: Snyk Code no analiza Shell (solo lanza comandos del proyecto)</td></tr><tr><td><code>rendimiento/ejecutar.js</code></td><td>JavaScript</td><td>145</td><td>145</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>rendimiento/informe.js</code></td><td>JavaScript</td><td>313</td><td>313</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>rendimiento/jmeter/cybershield.jmx</code></td><td>Plan JMeter (XML)</td><td>247</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Plan de pruebas de JMeter (XML de configuración, no código de la aplicación)</td></tr><tr><td><code>rendimiento/k6/cybershield.js</code></td><td>JavaScript</td><td>125</td><td>125</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>rendimiento/resultados/**</code></td><td>Varios</td><td>97547</td><td>44982</td>
+<td class="mu">— Excluido</td><td>—</td><td>Informe generado automáticamente (excluido en .snyk) (269 archivos)</td></tr><tr><td><code>seguridad/cobertura-snyk-ANTES.html</code></td><td>HTML</td><td>85</td><td></td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>seguridad/cobertura-snyk.html</code></td><td>HTML</td><td>92</td><td></td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>seguridad/ejecutar-snyk.bat</code></td><td>Batch (Windows)</td><td>29</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Script de Windows: Snyk Code no analiza Batch (solo lanza comandos del proyecto)</td></tr><tr><td><code>seguridad/ejecutar-snyk.sh</code></td><td>Shell</td><td>17</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Script de terminal: Snyk Code no analiza Shell (solo lanza comandos del proyecto)</td></tr><tr><td><code>seguridad/snyk-codigo-ANTES.json</code></td><td>JSON</td><td>1</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Datos/configuración JSON (panel de Grafana): no es código ejecutable</td></tr><tr><td><code>seguridad/snyk-codigo.json</code></td><td>JSON</td><td>1</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Datos/configuración JSON (panel de Grafana): no es código ejecutable</td></tr><tr><td><code>seguridad/snyk-dependencias.json</code></td><td>JSON</td><td>32</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Datos/configuración JSON (panel de Grafana): no es código ejecutable</td></tr><tr><td><code>servidor.js</code></td><td>JavaScript</td><td>323</td><td>323</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>src/cybershield.css</code></td><td>CSS</td><td>228</td><td></td>
+<td class="mu">ℹ No aplica</td><td>—</td><td>Hojas de estilo: Snyk Code no analiza CSS (no contiene lógica ejecutable; la CSP impide inyectar estilos externos)</td></tr><tr><td><code>src/cybershield.js</code></td><td>JavaScript</td><td>1483</td><td>1483</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr><tr><td><code>src/plantilla.html</code></td><td>HTML</td><td>341</td><td>1</td>
+<td class="ok">✔ Analizado</td><td>Snyk Code</td><td>Código fuente analizado por Snyk Code (SAST)</td></tr></table></div>
+</main></body></html>

@@ -1,0 +1,32 @@
+{
+  "dependencyCount": 2,
+  "displayTargetFile": "package-lock.json",
+  "filesystemPolicy": true,
+  "filtered": {
+    "ignore": [],
+    "patch": []
+  },
+  "hasUnknownVersions": false,
+  "ignoreSettings": {
+    "adminOnly": false,
+    "autoApproveIgnores": false,
+    "disregardFilesystemIgnores": false,
+    "reasonRequired": false
+  },
+  "isPrivate": true,
+  "licensesPolicy": {
+    "orgLicenseRules": null,
+    "severities": null
+  },
+  "ok": true,
+  "org": "e62358c2-858f-44ba-bc45-cbf6c5c7a820",
+  "packageManager": "npm",
+  "path": "/home/user/cybershield",
+  "policy": "version: v1.25.0\nignore: {}\npatch: {}\nexclude:\n    global:\n        - CyberShield.html\n        - rendimiento/resultados/**\n        - node_modules/**\n",
+  "projectId": "c05cdbb4-7892-4993-8183-de75e8834973",
+  "projectName": "cybershield",
+  "summary": "No known vulnerabilities",
+  "targetFile": "",
+  "uniqueCount": 0,
+  "vulnerabilities": []
+}
