@@ -111,6 +111,15 @@ describe('03 · Pruebas de sistema', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  it('New Relic / OpenTelemetry: envía trazas, métricas y logs enlazados (receptor OTLP local)', async (t) => {
+    try { require.resolve('@opentelemetry/sdk-node'); } catch (e) { t.skip('dependencias de OpenTelemetry no instaladas (npm install)'); return; }
+    const { verificar } = require('../observabilidad/newrelic/verificar');
+    const r = await verificar({ silencioso: true });
+    const fallidas = Object.entries(r.comprobaciones).filter(([, ok]) => !ok).map(([k]) => k);
+    assert.deepEqual(fallidas, [], 'comprobaciones fallidas: ' + fallidas.join(' · '));
+    assert.ok(r.recibido.trazas.spans >= 20 && r.recibido.logs.total >= 20);
+  });
+
   it('progreso sobrevive a recargar y el informe se descarga', async () => {
     const { page, cerrar } = await h.nuevaPagina(env);
     await h.iniciarPartida(page, 'Laura Gómez');

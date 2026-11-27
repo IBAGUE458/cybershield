@@ -231,11 +231,34 @@ ${fila('Retardo del event loop (medio / máx.)', `${r.lazoMs} ms / ${r.lazoMaxMs
 }
 
 /* ======================= SERVIDOR ======================= */
+/* ======================= PUENTE CON OPENTELEMETRY / NEW RELIC (opcional) ======================= */
+// Solo actúa si se cargó observabilidad/newrelic/telemetria.js (node -r ...). Si no, el servidor no depende de nada externo.
+const SEVERIDAD = { info: 9, aviso: 13, error: 17 };
+function registrarMetricasOtel(tel, m) {
+  const meter = tel.meter;
+  meter.createObservableGauge('cybershield.eventloop.lag', { unit: 'ms', description: 'Retardo medio del event loop' })
+    .addCallback((r) => r.observe(lazoMs(m.lazo, 'mean')));
+  meter.createObservableGauge('cybershield.eventloop.lag.max', { unit: 'ms', description: 'Retardo máximo del event loop' })
+    .addCallback((r) => r.observe(lazoMs(m.lazo, 'max')));
+  meter.createObservableGauge('cybershield.memory.rss', { unit: 'By', description: 'Memoria residente del proceso' })
+    .addCallback((r) => r.observe(process.memoryUsage().rss));
+  meter.createObservableGauge('cybershield.http.in_flight', { description: 'Peticiones en curso' })
+    .addCallback((r) => r.observe(m.enCurso));
+  meter.createObservableCounter('cybershield.http.rate_limited', { description: 'Peticiones rechazadas por el limitador (429)' })
+    .addCallback((r) => r.observe(m.limitadas));
+  return meter.createHistogram('cybershield.http.server.duration', {
+    unit: 'ms', description: 'Duración de las peticiones por ruta y estado',
+    advice: { explicitBucketBoundaries: [0.5, 1, 2.5, 5, 10, 25, 50, 100, 250, 500, 1000] }
+  });
+}
+
 function crearServidor(opciones = {}) {
   const logs = opciones.logs === true;
   const token = opciones.token !== undefined ? opciones.token : process.env.METRICS_TOKEN || '';
   const flujoLog = opciones.logFile ? fs.createWriteStream(opciones.logFile, { flags: 'a' }) : null;
   const m = crearMetricas();
+  const tel = global.__cybershieldTelemetria || null;
+  const histogramaOtel = tel ? registrarMetricasOtel(tel, m) : null;
   const limite = opciones.limite !== undefined ? Number(opciones.limite) : Number(process.env.RATE_LIMIT || 30);
   const limitador = crearLimitador({
     limite,
@@ -243,7 +266,19 @@ function crearServidor(opciones = {}) {
     limitarLocal: opciones.limitarLocal !== undefined ? opciones.limitarLocal === true : process.env.RATE_LIMIT_LOCAL === '1'
   });
 
-  function log(obj) {
+  function log(obj, ctx) {
+    if (tel) {
+      // Log enviado a New Relic, enlazado con la traza de la petición (logs in context)
+      const atributos = {};
+      for (const [k, v] of Object.entries(obj)) if (k !== 'ts' && v !== undefined) atributos['cybershield.' + k] = v;
+      tel.logger.emit({
+        severityText: obj.nivel === 'aviso' ? 'WARN' : String(obj.nivel || 'info').toUpperCase(),
+        severityNumber: SEVERIDAD[obj.nivel] || 9,
+        body: obj.mensaje || `${obj.metodo} ${obj.ruta} → ${obj.estado} en ${obj.ms} ms`,
+        attributes: atributos,
+        context: ctx || undefined
+      });
+    }
     if (!logs && !flujoLog) return;
     const linea = JSON.stringify(obj);
     if (logs) process.stdout.write(linea + '\n');
@@ -264,6 +299,14 @@ function crearServidor(opciones = {}) {
     const rutaMetrica = normalizarRuta(ruta);
     m.enCurso += 1;
     let bytes = 0;
+    // Traza de OpenTelemetry creada por la instrumentación HTTP: se le pone un nombre por ruta (agrupa en New Relic)
+    const ctx = tel ? tel.api.context.active() : null;
+    const span = tel ? tel.api.trace.getSpan(ctx) : null;
+    if (span) {
+      span.updateName(`${req.method} ${rutaMetrica}`);
+      span.setAttribute('http.route', rutaMetrica);
+      span.setAttribute('cybershield.request_id', id);
+    }
 
     function responder(estado, cabeceras, cuerpo) {
       const dur = Number(process.hrtime.bigint() - t0) / 1e6;
@@ -277,17 +320,19 @@ function crearServidor(opciones = {}) {
       m.enCurso -= 1;
       const seg = Number(process.hrtime.bigint() - t0) / 1e9;
       registrar(m, req.method, rutaMetrica, res.statusCode, seg, bytes);
-      log({ ts: new Date().toISOString(), nivel: res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'aviso' : 'info', id, metodo: req.method, ruta: rutaMetrica, estado: res.statusCode, ms: +(seg * 1000).toFixed(2), bytes });
+      if (histogramaOtel) histogramaOtel.record(seg * 1000, { 'http.request.method': req.method, 'http.route': rutaMetrica, 'http.response.status_code': res.statusCode });
+      log({ ts: new Date().toISOString(), nivel: res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'aviso' : 'info', id, metodo: req.method, ruta: rutaMetrica, estado: res.statusCode, ms: +(seg * 1000).toFixed(2), bytes }, ctx);
     });
 
     if (!limitador.permitir(req.socket.remoteAddress)) {
       m.limitadas += 1;
+      if (span) span.addEvent('limitador: petición rechazada (429)');
       return responder(429, { 'Retry-After': '1', 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }, 'Demasiadas peticiones. Inténtalo de nuevo en un momento.');
     }
 
     let c;
     try { c = obtenerHtml(); } catch (e) {
-      log({ ts: new Date().toISOString(), nivel: 'error', id, mensaje: 'No se pudo leer CyberShield.html' });
+      log({ ts: new Date().toISOString(), nivel: 'error', id, mensaje: 'No se pudo leer CyberShield.html' }, ctx);
       return responder(500, { 'Content-Type': 'text/plain; charset=utf-8' }, 'Error interno');
     }
     const base = c.cabeceras;

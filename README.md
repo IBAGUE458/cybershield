@@ -57,6 +57,10 @@ y abre http://127.0.0.1:8080/ (también funciona abriendo `CyberShield.html` dir
 
 `npm run cobertura` ejecuta las 27 suites midiendo la cobertura de `src/cybershield.js` y de `servidor.js` (97,6 % de líneas) y genera `coverage/lcov.info` e informe HTML. El flujo `.github/workflows/cobertura.yml` la sube a Coveralls. Todo explicado en **GUIA-COVERALLS.html**.
 
+## Observabilidad con New Relic
+
+`observabilidad/newrelic/telemetria.js` envía trazas, métricas y logs (enlazados) a New Relic con OpenTelemetry. Se activa con `NEW_RELIC_LICENSE_KEY` (`npm run newrelic:k6`) y se verifica sin cuenta con `npm run newrelic:verificar`. Incluye un dashboard importable de 11 gráficos. Todo explicado en **GUIA-NEWRELIC.html**.
+
 ## Rendimiento y observabilidad
 
 Pruebas con **k6** y **Apache JMeter**, métricas **Prometheus**, paneles **Grafana**, logs JSON y trazas con `X-Request-Id`.

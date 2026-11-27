@@ -1,0 +1,167 @@
+{
+  "fecha": "2026-11-27T14:48:43.022Z",
+  "trafico": {
+    "200": 22,
+    "404": 4,
+    "405": 4,
+    "429": 2
+  },
+  "comprobaciones": {
+    "llega la cabecera api-key (autenticación de New Relic)": true,
+    "service.name = cybershield": true,
+    "trazas con nombre por ruta (GET /, GET /health, POST /, GET otras…)": true,
+    "cada traza lleva el X-Request-Id": true,
+    "las 429 del limitador quedan como evento en la traza": true,
+    "métrica de duración por ruta y estado": true,
+    "métricas del event loop, memoria y peticiones en curso": true,
+    "métrica del limitador (rate_limited)": true,
+    "métricas con temporalidad DELTA (recomendada por New Relic)": true,
+    "logs recibidos (WARN para 404/405/429)": true,
+    "logs enlazados con su traza (logs in context)": true
+  },
+  "superadas": 11,
+  "total": 11,
+  "recibido": {
+    "peticionesOtlp": 15,
+    "rechazadasSinClave": 0,
+    "clavePresente": true,
+    "recurso": {
+      "os.type": "linux",
+      "os.version": "6.18.44-fc-v880",
+      "host.name": "vm",
+      "host.arch": "amd64",
+      "host.id": "02c0ff32d11f4f6ea20de4b2a2924cdc",
+      "process.pid": 1004,
+      "process.executable.name": "/opt/node22/bin/node",
+      "process.executable.path": "/opt/node22/bin/node",
+      "process.runtime.version": "22.23.5",
+      "process.runtime.name": "nodejs",
+      "process.runtime.description": "Node.js",
+      "process.command": "/home/user/cybershield/servidor.js",
+      "process.owner": "root",
+      "service.instance.id": "6b00bb10-f568-4107-9c75-9f605fb2915d",
+      "service.name": "cybershield",
+      "service.version": "1.0.0",
+      "deployment.environment": "pruebas",
+      "telemetry.distro": "cybershield-otel"
+    },
+    "trazas": {
+      "spans": 33,
+      "porNombre": {
+        "GET /health": 17,
+        "GET /": 4,
+        "GET /metrics": 4,
+        "GET otras": 4,
+        "POST /": 4
+      },
+      "ejemplo": {
+        "nombre": "GET /",
+        "traceId": "48fbcf626ffed0568f5a4d5070a41120",
+        "spanId": "f59c3e6c0c24549e",
+        "tipo": 2,
+        "atributos": {
+          "http.request.method": "GET",
+          "url.scheme": "http",
+          "server.address": "127.0.0.1",
+          "network.peer.address": "127.0.0.1",
+          "network.peer.port": 33780,
+          "network.protocol.version": "1.1",
+          "url.path": "/",
+          "client.address": "127.0.0.1",
+          "server.port": 30976,
+          "http.route": "/",
+          "cybershield.request_id": "527502aa-49b2-437a-93a0-ae8bbbec7e14",
+          "http.response.status_code": 200
+        },
+        "ms": 1.068032,
+        "eventos": []
+      },
+      "conRequestId": 33,
+      "eventos429": 2
+    },
+    "metricas": {
+      "http.server.request.duration": {
+        "tipo": "histogram",
+        "unidad": "s",
+        "exportaciones": 4,
+        "temporalidad": 1,
+        "ultimo": "count=2",
+        "rutas": []
+      },
+      "cybershield.eventloop.lag": {
+        "tipo": "gauge",
+        "unidad": "ms",
+        "exportaciones": 7,
+        "ultimo": 0.22589924324324429,
+        "rutas": []
+      },
+      "cybershield.eventloop.lag.max": {
+        "tipo": "gauge",
+        "unidad": "ms",
+        "exportaciones": 7,
+        "ultimo": 17.607039,
+        "rutas": []
+      },
+      "cybershield.memory.rss": {
+        "tipo": "gauge",
+        "unidad": "By",
+        "exportaciones": 7,
+        "ultimo": 66797568,
+        "rutas": []
+      },
+      "cybershield.http.in_flight": {
+        "tipo": "gauge",
+        "unidad": "",
+        "exportaciones": 7,
+        "ultimo": 0,
+        "rutas": []
+      },
+      "cybershield.http.rate_limited": {
+        "tipo": "sum",
+        "unidad": "",
+        "exportaciones": 7,
+        "temporalidad": 1,
+        "ultimo": 0,
+        "rutas": []
+      },
+      "cybershield.http.server.duration": {
+        "tipo": "histogram",
+        "unidad": "ms",
+        "exportaciones": 4,
+        "temporalidad": 1,
+        "ultimo": "count=2",
+        "rutas": [
+          "GET /health 200",
+          "GET / 200",
+          "GET /metrics 200",
+          "GET otras 404",
+          "POST / 405",
+          "GET /health 429"
+        ]
+      }
+    },
+    "logs": {
+      "total": 33,
+      "porSeveridad": {
+        "INFO": 23,
+        "WARN": 10
+      },
+      "enlazadosConTraza": 33,
+      "ejemplo": {
+        "severidad": "INFO",
+        "cuerpo": "GET /health → 200 en 2.49 ms",
+        "traceId": "a9ef120bfbef1de875388c4eb680e270",
+        "spanId": "0a4cb27fa65cf3b1",
+        "atributos": {
+          "cybershield.nivel": "info",
+          "cybershield.id": "d585397c-6bad-4d38-8995-42d92bf164f1",
+          "cybershield.metodo": "GET",
+          "cybershield.ruta": "/health",
+          "cybershield.estado": 200,
+          "cybershield.ms": 2.49,
+          "cybershield.bytes": 45
+        }
+      }
+    }
+  }
+}

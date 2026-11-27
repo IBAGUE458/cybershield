@@ -33,7 +33,12 @@
     "rendimiento:informe": "node rendimiento/ejecutar.js informe",
     "snyk:informe": "node herramientas/informe-snyk.js",
     "cobertura": "node herramientas/cobertura.js",
-    "cobertura:informe": "node herramientas/cobertura.js --sin-pruebas"
+    "cobertura:informe": "node herramientas/cobertura.js --sin-pruebas",
+    "newrelic:servidor": "node -r ./observabilidad/newrelic/telemetria.js servidor.js 8080",
+    "newrelic:k6": "node -r ./observabilidad/newrelic/telemetria.js rendimiento/ejecutar.js k6 carga",
+    "newrelic:k6:validacion": "node -r ./observabilidad/newrelic/telemetria.js rendimiento/ejecutar.js k6 validacion",
+    "newrelic:verificar": "node observabilidad/newrelic/verificar.js",
+    "newrelic:dashboard": "node observabilidad/newrelic/preparar-dashboard.js"
   },
   "devDependencies": {
     "c8": "^12.0.0",
@@ -42,5 +47,20 @@
     "istanbul-reports": "^3.2.0",
     "playwright": "^1.45.0",
     "v8-to-istanbul": "^9.3.0"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.10.0",
+    "@opentelemetry/exporter-logs-otlp-http": "^0.301.2",
+    "@opentelemetry/exporter-logs-otlp-proto": "^0.301.2",
+    "@opentelemetry/exporter-metrics-otlp-http": "^0.301.2",
+    "@opentelemetry/exporter-metrics-otlp-proto": "^0.301.2",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.301.2",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.301.2",
+    "@opentelemetry/instrumentation-http": "^0.301.2",
+    "@opentelemetry/resources": "^3.1.1",
+    "@opentelemetry/sdk-logs": "^3.1.1",
+    "@opentelemetry/sdk-metrics": "^3.1.1",
+    "@opentelemetry/sdk-node": "^0.301.2",
+    "@opentelemetry/sdk-trace": "^3.1.1"
   }
 }

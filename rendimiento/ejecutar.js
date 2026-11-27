@@ -151,5 +151,6 @@ function lanzar(cmd, args, env) {
   fs.writeFileSync(path.join(RES, `ejecucion-${herramienta}-${meta.escenario || 'x'}-${sello}.json`), JSON.stringify(meta, null, 2));
   await new Promise((r) => srv.close(r));
   console.log(`\nResultados en ${RES}\n  · Observabilidad del servidor: ${path.basename(htmlObs)}\n  · Logs JSON: ${path.basename(logFile)}`);
+  if (global.__cybershieldTelemetria) { console.log('Enviando los últimos datos de telemetría…'); await global.__cybershieldTelemetria.cerrar(); }
   process.exit(codigo);
 })();

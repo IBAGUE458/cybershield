@@ -42,3 +42,9 @@ que regenera CyberShield.html y su política de seguridad (CSP). Si no, el juego
      y abre coverage\index.html (también se genera coverage\lcov.info, que es lo que se sube a Coveralls).
    - Subida automática a Coveralls: sube el proyecto a GitHub y activa el repositorio en https://coveralls.io
      (el flujo .github\workflows\cobertura.yml ya está incluido).
+
+8) OBSERVABILIDAD CON NEW RELIC
+   - Abre GUIA-NEWRELIC.html (paso a paso completo).
+   - Windows: doble clic en observabilidad\newrelic\ejecutar-newrelic.bat (te pide tu License key de New Relic)
+   - Mac/Linux: sh observabilidad/newrelic/ejecutar-newrelic.sh
+   - Verificar sin cuenta (receptor local que imita a New Relic):  npm run newrelic:verificar

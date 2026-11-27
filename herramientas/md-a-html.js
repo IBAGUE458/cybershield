@@ -1,5 +1,5 @@
 // Convierte los documentos Markdown del proyecto en páginas HTML estáticas (sin scripts) para verlas en el navegador.
-// Uso: node herramientas/md-a-html.js [README.md | RENDIMIENTO.md | SNYK.md | COVERALLS.md | todas]
+// Uso: node herramientas/md-a-html.js [README.md | RENDIMIENTO.md | SNYK.md | COVERALLS.md | NEWRELIC.md | todas]
 // Seguridad: solo se aceptan los documentos de la lista DOCUMENTOS. Las rutas de lectura y escritura salen de esa
 // lista fija y nunca del texto que se escribe en la línea de comandos (evita path traversal).
 'use strict';
@@ -10,7 +10,8 @@ const DOCUMENTOS = [
   { md: 'README.md', html: 'GUIA.html', titulo: 'CyberShield — Guía y 27 pruebas' },
   { md: 'RENDIMIENTO.md', html: 'GUIA-RENDIMIENTO.html', titulo: 'CyberShield — Rendimiento y observabilidad' },
   { md: 'SNYK.md', html: 'GUIA-SNYK.html', titulo: 'CyberShield — Pruebas con Snyk' },
-  { md: 'COVERALLS.md', html: 'GUIA-COVERALLS.html', titulo: 'CyberShield — Cobertura con Coveralls' }
+  { md: 'COVERALLS.md', html: 'GUIA-COVERALLS.html', titulo: 'CyberShield — Cobertura con Coveralls' },
+  { md: 'NEWRELIC.md', html: 'GUIA-NEWRELIC.html', titulo: 'CyberShield — Observabilidad con New Relic' }
 ];
 const pedido = process.argv[2] || 'README.md';
 const elegidos = pedido === 'todas' ? DOCUMENTOS : DOCUMENTOS.filter((d) => d.md === pedido);
