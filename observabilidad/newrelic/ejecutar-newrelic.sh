@@ -1,6 +1,7 @@
 #!/bin/sh
 # CyberShield - Prueba con New Relic (OpenTelemetry). Uso: sh observabilidad/newrelic/ejecutar-newrelic.sh [escenario k6]
 cd "$(dirname "$0")/../.." || exit 1
+command -v node >/dev/null 2>&1 || { echo "ERROR: Node.js no está instalado (https://nodejs.org)."; exit 1; }
 if [ -z "$NEW_RELIC_LICENSE_KEY" ]; then
   printf "Pega tu License key de New Relic (INGEST - LICENSE): "; stty -echo 2>/dev/null; read -r NEW_RELIC_LICENSE_KEY; stty echo 2>/dev/null; echo
   export NEW_RELIC_LICENSE_KEY

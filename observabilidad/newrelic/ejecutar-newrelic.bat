@@ -4,6 +4,7 @@ cd /d "%~dp0..\.."
 echo ==================================================
 echo   CyberShield - Prueba con New Relic (OpenTelemetry)
 echo ==================================================
+where node >nul 2>nul || (echo. & echo ERROR: Node.js no esta instalado. Instalalo con:  winget install OpenJS.NodeJS.LTS  o desde https://nodejs.org & echo Despues cierra esta ventana, abre una nueva y vuelve a ejecutar este archivo. & pause & exit /b 1)
 if "%NEW_RELIC_LICENSE_KEY%"=="" set /p NEW_RELIC_LICENSE_KEY=Pega tu License key de New Relic (INGEST - LICENSE): 
 if "%NEW_RELIC_LICENSE_KEY%"=="" (echo No se indico la clave. & pause & exit /b 1)
 if "%NEW_RELIC_REGION%"=="" set NEW_RELIC_REGION=US
