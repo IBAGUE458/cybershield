@@ -1,0 +1,1061 @@
+{
+  "fecha": "2026-11-27T20:43:59.863Z",
+  "escenario": "carga",
+  "codigoK6": 0,
+  "k6": {
+    "iterations": {
+      "rate": 19.829328608541253,
+      "count": 2208
+    },
+    "vus": {
+      "max": 50,
+      "value": 2,
+      "min": 1
+    },
+    "data_received": {
+      "rate": 702990.9474093359,
+      "count": 78278193
+    },
+    "cs_tiempo_servidor": {
+      "med": 0.02,
+      "max": 0.2,
+      "p(90)": 0.04,
+      "p(95)": 0.05,
+      "p(99)": 0.08710000000000036,
+      "avg": 0.026483568075118254,
+      "min": 0.01
+    },
+    "http_req_duration{expected_response:true}": {
+      "p(99)": 4.000349349999996,
+      "avg": 1.2482795803373277,
+      "min": 0.227654,
+      "med": 1.251515,
+      "max": 10.389114,
+      "p(90)": 2.0105135,
+      "p(95)": 2.2527049999999997
+    },
+    "iteration_duration": {
+      "p(95)": 2907.7003466500005,
+      "p(99)": 2983.15488019,
+      "avg": 1944.5332115249105,
+      "min": 1.099557,
+      "med": 1992.8702105,
+      "max": 3002.317535,
+      "p(90)": 2801.3933791
+    },
+    "checks": {
+      "fails": 0,
+      "passes": 10874,
+      "thresholds": {
+        "rate>0.99": false
+      },
+      "value": 1
+    },
+    "http_req_blocked": {
+      "avg": 0.011079530403905889,
+      "min": 0.002179,
+      "med": 0.0059275000000000005,
+      "max": 1.123743,
+      "p(90)": 0.009055500000000001,
+      "p(95)": 0.010468,
+      "p(99)": 0.3147320499999954
+    },
+    "cs_cobertura_rutas_ok": {
+      "passes": 56,
+      "fails": 0,
+      "thresholds": {
+        "rate==1": false
+      },
+      "value": 1
+    },
+    "cs_partidas_iniciadas": {
+      "count": 2130,
+      "rate": 19.12883602182648
+    },
+    "http_req_duration{tipo:salud}": {
+      "avg": 0.7304763929577477,
+      "min": 0.248667,
+      "med": 0.620414,
+      "max": 9.429712,
+      "p(90)": 0.8699471000000001,
+      "p(95)": 1.1226318499999983,
+      "p(99)": 4.06744851,
+      "thresholds": {
+        "p(95)<100": false
+      }
+    },
+    "http_reqs": {
+      "count": 4506,
+      "rate": 40.46691789406109
+    },
+    "http_req_connecting": {
+      "p(90)": 0,
+      "p(95)": 0,
+      "p(99)": 0.1977663999999998,
+      "avg": 0.0031463184642698616,
+      "min": 0,
+      "med": 0,
+      "max": 0.59244
+    },
+    "http_req_failed": {
+      "passes": 0,
+      "fails": 4506,
+      "thresholds": {
+        "rate<0.01": false
+      },
+      "value": 0
+    },
+    "cs_cabeceras_seguridad_ok": {
+      "passes": 2130,
+      "fails": 0,
+      "thresholds": {
+        "rate==1": false
+      },
+      "value": 1
+    },
+    "cs_metricas_disponibles": {
+      "passes": 22,
+      "fails": 0,
+      "thresholds": {
+        "rate>0.95": false
+      },
+      "value": 1
+    },
+    "http_req_duration{tipo:juego}": {
+      "p(90)": 2.1420916000000005,
+      "p(95)": 2.3355770499999995,
+      "p(99)": 3.5667472300000007,
+      "avg": 1.7750559549295772,
+      "min": 1.029288,
+      "med": 1.699139,
+      "max": 7.80316,
+      "thresholds": {
+        "p(95)<300": false,
+        "p(99)<800": false
+      }
+    },
+    "http_req_duration": {
+      "max": 10.389114,
+      "p(90)": 2.0105135,
+      "p(95)": 2.2527049999999997,
+      "p(99)": 4.000349349999996,
+      "avg": 1.2482795803373277,
+      "min": 0.227654,
+      "med": 1.251515
+    },
+    "http_req_receiving": {
+      "p(99)": 1.5724152999999998,
+      "avg": 0.5287597268086995,
+      "min": 0.020656,
+      "med": 0.1168595,
+      "max": 6.502861,
+      "p(90)": 1.1413715,
+      "p(95)": 1.2426072499999998
+    },
+    "http_req_waiting": {
+      "max": 10.272137,
+      "p(90)": 0.9225840000000001,
+      "p(95)": 1.16291675,
+      "p(99)": 3.334053549999987,
+      "avg": 0.6935213160230825,
+      "min": 0.181811,
+      "med": 0.5937695000000001
+    },
+    "data_sent": {
+      "count": 437950,
+      "rate": 3933.0862609196743
+    },
+    "group_duration": {
+      "max": 18.3602,
+      "p(90)": 2.8984262,
+      "p(95)": 3.283156799999998,
+      "p(99)": 5.31779177999999,
+      "avg": 1.7365074532863793,
+      "min": 0.370801,
+      "med": 1.846608
+    },
+    "cs_tiempo_carga_juego": {
+      "max": 7.80316,
+      "p(90)": 2.1420916000000005,
+      "p(95)": 2.3355770499999995,
+      "p(99)": 3.5667472300000007,
+      "avg": 1.7750559549295772,
+      "min": 1.029288,
+      "med": 1.699139
+    },
+    "http_req_tls_handshaking": {
+      "avg": 0,
+      "min": 0,
+      "med": 0,
+      "max": 0,
+      "p(90)": 0,
+      "p(95)": 0,
+      "p(99)": 0
+    },
+    "vus_max": {
+      "value": 53,
+      "min": 53,
+      "max": 53
+    },
+    "http_req_sending": {
+      "med": 0.017991,
+      "max": 8.326583,
+      "p(90)": 0.039099999999999996,
+      "p(95)": 0.04844075,
+      "p(99)": 0.09691659999999985,
+      "avg": 0.025998537505548147,
+      "min": 0.005429
+    }
+  },
+  "recibido": {
+    "peticionesOtlp": 153,
+    "rechazadasSinClave": 0,
+    "clavePresente": true,
+    "recurso": {
+      "os.type": "linux",
+      "os.version": "6.18.44-fc-v880",
+      "host.name": "vm",
+      "host.arch": "amd64",
+      "host.id": "02c0ff32d11f4f6ea20de4b2a2924cdc",
+      "process.pid": 180,
+      "process.executable.name": "/opt/node22/bin/node",
+      "process.executable.path": "/opt/node22/bin/node",
+      "process.runtime.version": "22.23.5",
+      "process.runtime.name": "nodejs",
+      "process.runtime.description": "Node.js",
+      "process.command": "/home/user/cybershield/servidor.js",
+      "process.owner": "root",
+      "service.instance.id": "888018d0-4017-430a-82f9-74ca0be78122",
+      "service.name": "cybershield",
+      "service.version": "1.0.0",
+      "deployment.environment": "pruebas",
+      "telemetry.distro": "cybershield-otel"
+    },
+    "trazas": {
+      "spans": 4507,
+      "porNombre": {
+        "GET /health": 2131,
+        "GET /metrics": 22,
+        "HEAD /": 56,
+        "GET /observabilidad": 56,
+        "POST /": 56,
+        "GET otras": 56,
+        "GET /": 2130
+      },
+      "ejemplo": {
+        "nombre": "GET /",
+        "traceId": "4b4f8ac600a25223f89e676615f809db",
+        "spanId": "7268da555a7d9f38",
+        "tipo": 2,
+        "atributos": {
+          "http.request.method": "GET",
+          "url.scheme": "http",
+          "server.address": "127.0.0.1",
+          "network.peer.address": "127.0.0.1",
+          "network.peer.port": 43456,
+          "network.protocol.version": "1.1",
+          "user_agent.original": "k6/0.54.0 (https://k6.io/)",
+          "url.path": "/",
+          "client.address": "127.0.0.1",
+          "server.port": 29727,
+          "http.route": "/",
+          "cybershield.request_id": "04c3a7c6-510d-4ea4-b9ec-aba27747a500",
+          "http.response.status_code": 200
+        },
+        "inicio": 1795812122333,
+        "ms": 0.934912,
+        "eventos": []
+      },
+      "conRequestId": 4507,
+      "eventos429": 0
+    },
+    "metricas": {
+      "http.server.request.duration": {
+        "tipo": "histogram",
+        "unidad": "s",
+        "exportaciones": 23,
+        "temporalidad": 1,
+        "ultimo": "count=2",
+        "rutas": []
+      },
+      "cybershield.eventloop.lag": {
+        "tipo": "gauge",
+        "unidad": "ms",
+        "exportaciones": 25,
+        "ultimo": 0.22985823711515607,
+        "rutas": []
+      },
+      "cybershield.eventloop.lag.max": {
+        "tipo": "gauge",
+        "unidad": "ms",
+        "exportaciones": 25,
+        "ultimo": 314.796415,
+        "rutas": []
+      },
+      "cybershield.memory.rss": {
+        "tipo": "gauge",
+        "unidad": "By",
+        "exportaciones": 25,
+        "ultimo": 89423872,
+        "rutas": []
+      },
+      "cybershield.http.in_flight": {
+        "tipo": "gauge",
+        "unidad": "",
+        "exportaciones": 25,
+        "ultimo": 0,
+        "rutas": []
+      },
+      "cybershield.http.rate_limited": {
+        "tipo": "sum",
+        "unidad": "",
+        "exportaciones": 25,
+        "temporalidad": 1,
+        "ultimo": 0,
+        "rutas": []
+      },
+      "cybershield.http.server.duration": {
+        "tipo": "histogram",
+        "unidad": "ms",
+        "exportaciones": 23,
+        "temporalidad": 1,
+        "ultimo": "count=4",
+        "rutas": [
+          "GET /health 200",
+          "GET /metrics 200",
+          "HEAD / 200",
+          "GET /observabilidad 200",
+          "POST / 405",
+          "GET otras 404",
+          "GET / 200"
+        ]
+      }
+    },
+    "logs": {
+      "total": 4507,
+      "porSeveridad": {
+        "INFO": 4395,
+        "WARN": 112
+      },
+      "enlazadosConTraza": 4507,
+      "ejemplo": {
+        "severidad": "INFO",
+        "cuerpo": "GET /health → 200 en 7.02 ms",
+        "traceId": "8c11b73326226b1143b20dd38ce301d2",
+        "spanId": "375c33b322821d72",
+        "atributos": {
+          "cybershield.nivel": "info",
+          "cybershield.id": "a6bcc587-7052-4cde-8b28-a9a4ab2ca26d",
+          "cybershield.metodo": "GET",
+          "cybershield.ruta": "/health",
+          "cybershield.estado": 200,
+          "cybershield.ms": 7.02,
+          "cybershield.bytes": 45
+        }
+      }
+    },
+    "analisis": {
+      "rutas": {
+        "GET /health": {
+          "peticiones": 2131,
+          "media": 0.3474032923510091,
+          "p50": 0.323072,
+          "p95": 0.520448,
+          "p99": 0.755456,
+          "max": 9.642752,
+          "estados": {
+            "200": 2131
+          }
+        },
+        "GET /metrics": {
+          "peticiones": 22,
+          "media": 0.7620189090909091,
+          "p50": 0.697088,
+          "p95": 1.089024,
+          "p99": 1.78432,
+          "max": 1.78432,
+          "estados": {
+            "200": 22
+          }
+        },
+        "HEAD /": {
+          "peticiones": 56,
+          "media": 0.40958171428571444,
+          "p50": 0.36992,
+          "p95": 0.68864,
+          "p99": 0.732416,
+          "max": 0.732416,
+          "estados": {
+            "200": 56
+          }
+        },
+        "GET /observabilidad": {
+          "peticiones": 56,
+          "media": 1.907995428571429,
+          "p50": 1.732864,
+          "p95": 3.985152,
+          "p99": 10.748672,
+          "max": 10.748672,
+          "estados": {
+            "200": 56
+          }
+        },
+        "POST /": {
+          "peticiones": 56,
+          "media": 0.28880914285714293,
+          "p50": 0.278016,
+          "p95": 0.439296,
+          "p99": 0.657408,
+          "max": 0.657408,
+          "estados": {
+            "405": 56
+          }
+        },
+        "GET otras": {
+          "peticiones": 56,
+          "media": 0.2686308571428571,
+          "p50": 0.248064,
+          "p95": 0.557824,
+          "p99": 0.60416,
+          "max": 0.60416,
+          "estados": {
+            "404": 56
+          }
+        },
+        "GET /": {
+          "peticiones": 2130,
+          "media": 0.4372942723004693,
+          "p50": 0.411904,
+          "p95": 0.678656,
+          "p99": 0.996608,
+          "max": 4.251136,
+          "estados": {
+            "200": 2130
+          }
+        }
+      },
+      "serie": [
+        {
+          "t": 0,
+          "peticiones": 1,
+          "p95": 9.642752
+        },
+        {
+          "t": 1,
+          "peticiones": 0,
+          "p95": 0
+        },
+        {
+          "t": 2,
+          "peticiones": 5,
+          "p95": 1.78432
+        },
+        {
+          "t": 3,
+          "peticiones": 4,
+          "p95": 0.985344
+        },
+        {
+          "t": 4,
+          "peticiones": 10,
+          "p95": 0.871936
+        },
+        {
+          "t": 5,
+          "peticiones": 4,
+          "p95": 0.947456
+        },
+        {
+          "t": 6,
+          "peticiones": 10,
+          "p95": 2.99648
+        },
+        {
+          "t": 7,
+          "peticiones": 13,
+          "p95": 0.940288
+        },
+        {
+          "t": 8,
+          "peticiones": 10,
+          "p95": 0.908544
+        },
+        {
+          "t": 9,
+          "peticiones": 10,
+          "p95": 1.152512
+        },
+        {
+          "t": 10,
+          "peticiones": 24,
+          "p95": 0.767744
+        },
+        {
+          "t": 11,
+          "peticiones": 10,
+          "p95": 0.914688
+        },
+        {
+          "t": 12,
+          "peticiones": 25,
+          "p95": 0.858368
+        },
+        {
+          "t": 13,
+          "peticiones": 26,
+          "p95": 0.94208
+        },
+        {
+          "t": 14,
+          "peticiones": 26,
+          "p95": 0.788224
+        },
+        {
+          "t": 15,
+          "peticiones": 22,
+          "p95": 0.886272
+        },
+        {
+          "t": 16,
+          "peticiones": 32,
+          "p95": 0.774912
+        },
+        {
+          "t": 17,
+          "peticiones": 31,
+          "p95": 0.803328
+        },
+        {
+          "t": 18,
+          "peticiones": 28,
+          "p95": 0.999168
+        },
+        {
+          "t": 19,
+          "peticiones": 40,
+          "p95": 0.701184
+        },
+        {
+          "t": 20,
+          "peticiones": 24,
+          "p95": 0.714752
+        },
+        {
+          "t": 21,
+          "peticiones": 36,
+          "p95": 0.728576
+        },
+        {
+          "t": 22,
+          "peticiones": 37,
+          "p95": 0.789248
+        },
+        {
+          "t": 23,
+          "peticiones": 42,
+          "p95": 0.672
+        },
+        {
+          "t": 24,
+          "peticiones": 40,
+          "p95": 0.625664
+        },
+        {
+          "t": 25,
+          "peticiones": 42,
+          "p95": 0.872192
+        },
+        {
+          "t": 26,
+          "peticiones": 42,
+          "p95": 0.586496
+        },
+        {
+          "t": 27,
+          "peticiones": 49,
+          "p95": 0.596736
+        },
+        {
+          "t": 28,
+          "peticiones": 46,
+          "p95": 0.618496
+        },
+        {
+          "t": 29,
+          "peticiones": 32,
+          "p95": 0.67584
+        },
+        {
+          "t": 30,
+          "peticiones": 57,
+          "p95": 0.734976
+        },
+        {
+          "t": 31,
+          "peticiones": 51,
+          "p95": 0.5568
+        },
+        {
+          "t": 32,
+          "peticiones": 43,
+          "p95": 0.627968
+        },
+        {
+          "t": 33,
+          "peticiones": 52,
+          "p95": 0.812032
+        },
+        {
+          "t": 34,
+          "peticiones": 52,
+          "p95": 0.801792
+        },
+        {
+          "t": 35,
+          "peticiones": 64,
+          "p95": 0.65792
+        },
+        {
+          "t": 36,
+          "peticiones": 44,
+          "p95": 0.637952
+        },
+        {
+          "t": 37,
+          "peticiones": 61,
+          "p95": 0.594688
+        },
+        {
+          "t": 38,
+          "peticiones": 40,
+          "p95": 1.201152
+        },
+        {
+          "t": 39,
+          "peticiones": 54,
+          "p95": 0.66048
+        },
+        {
+          "t": 40,
+          "peticiones": 49,
+          "p95": 0.628736
+        },
+        {
+          "t": 41,
+          "peticiones": 53,
+          "p95": 0.56576
+        },
+        {
+          "t": 42,
+          "peticiones": 53,
+          "p95": 0.796928
+        },
+        {
+          "t": 43,
+          "peticiones": 54,
+          "p95": 0.651776
+        },
+        {
+          "t": 44,
+          "peticiones": 58,
+          "p95": 0.692224
+        },
+        {
+          "t": 45,
+          "peticiones": 52,
+          "p95": 0.60416
+        },
+        {
+          "t": 46,
+          "peticiones": 48,
+          "p95": 0.70528
+        },
+        {
+          "t": 47,
+          "peticiones": 51,
+          "p95": 0.550144
+        },
+        {
+          "t": 48,
+          "peticiones": 46,
+          "p95": 0.732416
+        },
+        {
+          "t": 49,
+          "peticiones": 47,
+          "p95": 0.627456
+        },
+        {
+          "t": 50,
+          "peticiones": 59,
+          "p95": 1.250048
+        },
+        {
+          "t": 51,
+          "peticiones": 54,
+          "p95": 0.68992
+        },
+        {
+          "t": 52,
+          "peticiones": 57,
+          "p95": 0.598272
+        },
+        {
+          "t": 53,
+          "peticiones": 46,
+          "p95": 0.45824
+        },
+        {
+          "t": 54,
+          "peticiones": 56,
+          "p95": 0.56832
+        },
+        {
+          "t": 55,
+          "peticiones": 50,
+          "p95": 0.490496
+        },
+        {
+          "t": 56,
+          "peticiones": 44,
+          "p95": 0.53504
+        },
+        {
+          "t": 57,
+          "peticiones": 63,
+          "p95": 0.759296
+        },
+        {
+          "t": 58,
+          "peticiones": 39,
+          "p95": 0.611072
+        },
+        {
+          "t": 59,
+          "peticiones": 63,
+          "p95": 0.562432
+        },
+        {
+          "t": 60,
+          "peticiones": 42,
+          "p95": 0.703744
+        },
+        {
+          "t": 61,
+          "peticiones": 56,
+          "p95": 0.59648
+        },
+        {
+          "t": 62,
+          "peticiones": 49,
+          "p95": 0.505088
+        },
+        {
+          "t": 63,
+          "peticiones": 46,
+          "p95": 0.82304
+        },
+        {
+          "t": 64,
+          "peticiones": 58,
+          "p95": 0.6848
+        },
+        {
+          "t": 65,
+          "peticiones": 44,
+          "p95": 0.590336
+        },
+        {
+          "t": 66,
+          "peticiones": 52,
+          "p95": 0.561152
+        },
+        {
+          "t": 67,
+          "peticiones": 51,
+          "p95": 0.528384
+        },
+        {
+          "t": 68,
+          "peticiones": 52,
+          "p95": 0.505856
+        },
+        {
+          "t": 69,
+          "peticiones": 58,
+          "p95": 0.580864
+        },
+        {
+          "t": 70,
+          "peticiones": 44,
+          "p95": 0.49536
+        },
+        {
+          "t": 71,
+          "peticiones": 58,
+          "p95": 0.621312
+        },
+        {
+          "t": 72,
+          "peticiones": 49,
+          "p95": 0.663552
+        },
+        {
+          "t": 73,
+          "peticiones": 36,
+          "p95": 0.581376
+        },
+        {
+          "t": 74,
+          "peticiones": 58,
+          "p95": 0.47616
+        },
+        {
+          "t": 75,
+          "peticiones": 40,
+          "p95": 0.487424
+        },
+        {
+          "t": 76,
+          "peticiones": 58,
+          "p95": 0.56576
+        },
+        {
+          "t": 77,
+          "peticiones": 43,
+          "p95": 0.552704
+        },
+        {
+          "t": 78,
+          "peticiones": 64,
+          "p95": 0.629248
+        },
+        {
+          "t": 79,
+          "peticiones": 40,
+          "p95": 0.478208
+        },
+        {
+          "t": 80,
+          "peticiones": 55,
+          "p95": 0.549632
+        },
+        {
+          "t": 81,
+          "peticiones": 61,
+          "p95": 0.477696
+        },
+        {
+          "t": 82,
+          "peticiones": 43,
+          "p95": 0.554496
+        },
+        {
+          "t": 83,
+          "peticiones": 48,
+          "p95": 0.504832
+        },
+        {
+          "t": 84,
+          "peticiones": 62,
+          "p95": 0.473088
+        },
+        {
+          "t": 85,
+          "peticiones": 48,
+          "p95": 0.4864
+        },
+        {
+          "t": 86,
+          "peticiones": 50,
+          "p95": 0.546816
+        },
+        {
+          "t": 87,
+          "peticiones": 49,
+          "p95": 0.56576
+        },
+        {
+          "t": 88,
+          "peticiones": 58,
+          "p95": 0.509696
+        },
+        {
+          "t": 89,
+          "peticiones": 42,
+          "p95": 0.55936
+        },
+        {
+          "t": 90,
+          "peticiones": 60,
+          "p95": 0.529152
+        },
+        {
+          "t": 91,
+          "peticiones": 55,
+          "p95": 0.4416
+        },
+        {
+          "t": 92,
+          "peticiones": 58,
+          "p95": 0.631552
+        },
+        {
+          "t": 93,
+          "peticiones": 50,
+          "p95": 0.411904
+        },
+        {
+          "t": 94,
+          "peticiones": 60,
+          "p95": 0.470784
+        },
+        {
+          "t": 95,
+          "peticiones": 36,
+          "p95": 0.491776
+        },
+        {
+          "t": 96,
+          "peticiones": 52,
+          "p95": 0.487424
+        },
+        {
+          "t": 97,
+          "peticiones": 39,
+          "p95": 0.493568
+        },
+        {
+          "t": 98,
+          "peticiones": 40,
+          "p95": 0.462848
+        },
+        {
+          "t": 99,
+          "peticiones": 36,
+          "p95": 0.449024
+        },
+        {
+          "t": 100,
+          "peticiones": 34,
+          "p95": 0.568064
+        },
+        {
+          "t": 101,
+          "peticiones": 26,
+          "p95": 0.518912
+        },
+        {
+          "t": 102,
+          "peticiones": 37,
+          "p95": 0.977152
+        },
+        {
+          "t": 103,
+          "peticiones": 18,
+          "p95": 0.480256
+        },
+        {
+          "t": 104,
+          "peticiones": 26,
+          "p95": 0.623872
+        },
+        {
+          "t": 105,
+          "peticiones": 18,
+          "p95": 0.404736
+        },
+        {
+          "t": 106,
+          "peticiones": 20,
+          "p95": 0.487168
+        },
+        {
+          "t": 107,
+          "peticiones": 5,
+          "p95": 1.089024
+        },
+        {
+          "t": 108,
+          "peticiones": 20,
+          "p95": 0.672768
+        },
+        {
+          "t": 109,
+          "peticiones": 6,
+          "p95": 0.387328
+        },
+        {
+          "t": 110,
+          "peticiones": 6,
+          "p95": 2.394368
+        },
+        {
+          "t": 111,
+          "peticiones": 6,
+          "p95": 0.379136
+        },
+        {
+          "t": 112,
+          "peticiones": 4,
+          "p95": 1.824512
+        }
+      ],
+      "global": {
+        "peticiones": 4507,
+        "media": 0.41036578477923347,
+        "p50": 0.36352,
+        "p95": 0.663808,
+        "p99": 1.636864,
+        "max": 10.748672
+      },
+      "trazaMasLenta": {
+        "nombre": "GET /observabilidad",
+        "traceId": "3f6544b0f14aa01ab5cb08f7f11a9d6b",
+        "spanId": "a44dd2a3c363471c",
+        "tipo": 2,
+        "atributos": {
+          "http.request.method": "GET",
+          "url.scheme": "http",
+          "server.address": "127.0.0.1",
+          "network.peer.address": "127.0.0.1",
+          "network.peer.port": 43492,
+          "network.protocol.version": "1.1",
+          "user_agent.original": "k6/0.54.0 (https://k6.io/)",
+          "url.path": "/observabilidad",
+          "client.address": "127.0.0.1",
+          "server.port": 29727,
+          "http.route": "/observabilidad",
+          "cybershield.request_id": "adadad41-30e1-482d-8a1c-2956a9448f20",
+          "http.response.status_code": 200
+        },
+        "inicio": 1795812143733,
+        "ms": 10.748672,
+        "eventos": []
+      },
+      "logEnlazado": {
+        "log": {
+          "severidad": "WARN",
+          "cuerpo": "POST / → 405 en 0.33 ms",
+          "traceId": "754e03e9cf9c6963c56816ff4cc9948c",
+          "spanId": "8ae78ea90b1f2df6",
+          "atributos": {
+            "cybershield.nivel": "aviso",
+            "cybershield.id": "88716897-bc8f-44d9-ba36-db02982ec6fa",
+            "cybershield.metodo": "POST",
+            "cybershield.ruta": "/",
+            "cybershield.estado": 405,
+            "cybershield.ms": 0.33,
+            "cybershield.bytes": 20
+          }
+        },
+        "traza": {
+          "nombre": "POST /",
+          "traceId": "754e03e9cf9c6963c56816ff4cc9948c",
+          "ms": 0.657408,
+          "requestId": "88716897-bc8f-44d9-ba36-db02982ec6fa"
+        }
+      }
+    }
+  }
+}

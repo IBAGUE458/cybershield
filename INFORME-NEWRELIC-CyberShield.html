@@ -1,0 +1,130 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>Informe New Relic CyberShield</title>
+<style>:root{--bg:#f6f8fc;--s:#fff;--b:#d8deea;--t:#0f172a;--t2:#334155;--m:#64748b;--c:#0e7490;--ok:#047857;--ko:#be123c;--av:#b45309;--hl:#ecfeff}
+@media (prefers-color-scheme: dark){:root{--bg:#070b14;--s:#111a2e;--b:#1f2c47;--t:#e8eefc;--t2:#b4c0da;--m:#8492b0;--c:#22d3ee;--ok:#10b981;--ko:#f43f5e;--av:#f59e0b;--hl:#0b2530}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}main{max-width:1120px;margin:0 auto;padding:28px 16px 64px}
+h1{font-size:1.75rem;margin:0 0 6px;line-height:1.2}h2{font-size:1.25rem;margin:38px 0 10px;border-bottom:2px solid var(--b);padding-bottom:6px}h3{font-size:1.02rem;margin:18px 0 6px}p,li{color:var(--t2)}small{color:var(--m)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:18px 0}.kpi{background:var(--s);border:1px solid var(--b);border-radius:12px;padding:14px}.kpi small{display:block}.kpi b{font:700 1.4rem ui-monospace,Menlo,Consolas,monospace}.kpi span{display:block;font-size:.8rem;color:var(--m)}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;background:var(--s);font-size:.88rem}th,td{border:1px solid var(--b);padding:7px 9px;text-align:left;vertical-align:top}th{color:var(--c)}
+.ok{color:var(--ok);font-weight:700}.ko{color:var(--ko);font-weight:700}code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88em;word-break:break-all}
+.tarjeta{background:var(--s);border:1px solid var(--b);border-radius:12px;padding:16px;margin:12px 0}.aviso{background:var(--s);border-left:5px solid var(--av);padding:12px 16px;border-radius:0 12px 12px 0;margin:14px 0}
+.veredicto{background:var(--s);border:2px solid var(--ok);border-radius:14px;padding:16px 20px;margin:16px 0}.flujo{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem;background:var(--s);border:1px solid var(--b);border-radius:12px;padding:14px;overflow-x:auto;white-space:pre}
+dl{display:grid;grid-template-columns:minmax(150px,220px) 1fr;background:var(--s);border:1px solid var(--b);border-radius:12px;overflow:hidden;margin:0}dt,dd{margin:0;padding:10px 14px;border-bottom:1px solid var(--b)}dt{font-weight:700;color:var(--c)}dd{color:var(--t2)}
+@media (max-width:640px){dl{grid-template-columns:1fr}dt{border-bottom:0;padding-bottom:0}}
+figure{margin:12px 0}figcaption{font-size:.88rem;color:var(--t2);margin-bottom:4px}svg{width:100%;height:auto;display:block}svg .eje{stroke:var(--b)}svg .lbl{fill:var(--m);font-size:11px}</style></head><body><main>
+
+<h1>Informe de observabilidad · CyberShield + New Relic (OpenTelemetry)</h1>
+<p>Prueba realizada el 27/11/2026, 20:43:59 · escenario k6 <b>carga</b> (hasta 50 usuarios simultáneos, 113 s).</p>
+
+<div class="aviso"><b>Importante: de dónde salen estos datos.</b> El servidor de CyberShield está instrumentado para enviar sus datos a <b>New Relic</b>: formato OTLP, servidor <code>otlp.nr-data.net</code> y autenticación con la cabecera <code>api-key</code>. Al conectarlo con la cuenta, New Relic <b>rechazó las claves</b> ("Forbidden"), tanto desde la nube como desde el PC del estudiante, así que el problema está en la clave o en el estado de la cuenta, no en el proyecto. Por eso la telemetría se capturó con un <b>receptor OTLP local que imita a New Relic</b>: recibe exactamente los mismos datos, con el mismo formato y la misma cabecera. Las cifras de este informe son <b>reales</b> y corresponden a lo que New Relic habría recibido. No son capturas del panel de New Relic.</div>
+
+<div class="veredicto"><b class="ok">Resultado: la telemetría está completa y es correcta.</b>
+<p style="margin:6px 0 0">Las 4506 peticiones de k6 generaron <b>4507 trazas</b> y <b>4507 logs</b>, con el <b>100 %</b> de los logs enlazado con su traza, y <b>7 métricas</b>. Hubo <b>0 errores de servidor (5xx)</b>. La verificación automática superó <b>11 de 11</b> comprobaciones.</p></div>
+
+<div class="kpis">
+<div class="kpi"><small>Trazas (peticiones)</small><b>4507</b><span>≈ 2393 peticiones/min</span></div>
+<div class="kpi"><small>Latencia del servidor p95</small><b>0,66 ms</b><span>todas las rutas</span></div>
+<div class="kpi"><small>Logs enlazados con su traza</small><b class="ok">100 %</b><span>4507 de 4507</span></div>
+<div class="kpi"><small>Métricas enviadas</small><b>7</b><span>temporalidad DELTA</span></div>
+<div class="kpi"><small>Errores 5xx</small><b class="ok">0</b><span>fallos del servidor</span></div>
+<div class="kpi"><small>Verificación</small><b class="ok">11/11</b><span>comprobaciones superadas</span></div>
+</div>
+
+<h2>1. Qué es New Relic y qué se probó</h2>
+<p><b>New Relic</b> es una plataforma de <b>observabilidad</b> en la nube: recibe en tiempo real los datos internos de una aplicación (qué peticiones atiende, cuánto tardan, si fallan, cuánta memoria usa…) y los muestra en paneles con búsquedas (NRQL) y alertas. La prueba comprueba que CyberShield envía los <b>tres pilares de la observabilidad</b>:</p>
+<div class="tw"><table><tr><th>Pilar</th><th>Qué es</th><th>Qué envía CyberShield</th></tr>
+<tr><td><b>Trazas</b></td><td>El recorrido de cada petición dentro del servidor, con su duración.</td><td>Una traza por petición, nombrada por ruta (<code>GET /</code>, <code>POST /</code>…), con código de estado, duración, <code>X-Request-Id</code> y un evento cuando el limitador rechaza una petición.</td></tr>
+<tr><td><b>Métricas</b></td><td>Números medidos cada cierto tiempo.</td><td>7 métricas: duración de las peticiones, event loop, memoria, peticiones en curso y rechazos del limitador.</td></tr>
+<tr><td><b>Logs</b></td><td>El registro escrito de lo que pasa.</td><td>Un log por petición (INFO, y WARN para 404, 405 y 429), <b>enlazado con su traza</b>: desde un log se salta a la traza y al revés.</td></tr></table></div>
+
+<h2>2. Cómo se hizo la prueba</h2>
+<div class="flujo">k6 (50 estudiantes simulados)
+   │  peticiones HTTP
+   ▼
+Servidor CyberShield  +  OpenTelemetry  (observabilidad/newrelic/telemetria.js, cargado con node -r)
+   │  OTLP/HTTP · cabecera api-key · temporalidad DELTA   (en New Relic: https://otlp.nr-data.net)
+   ▼
+Receptor OTLP local que imita a New Relic  →  resumen de trazas, métricas y logs  →  este informe</div>
+<p>Se usa <b>OpenTelemetry</b>, el estándar abierto de observabilidad que New Relic recomienda. Con la clave válida, basta con definir <code>NEW_RELIC_LICENSE_KEY</code> para que los mismos datos lleguen a New Relic. El código no cambia.</p>
+
+<h2>3. Trazas: cada petición por dentro</h2>
+<p>Tiempos medidos <b>dentro del servidor</b> (desde que llega la petición hasta que se envía la respuesta), en milisegundos.</p>
+<div class="tw"><table><tr><th>Ruta (nombre de la traza)</th><th>Peticiones</th><th>Media</th><th>p50</th><th>p95</th><th>p99</th><th>Máx.</th><th>Códigos</th></tr><tr><td><code>GET /health</code><br><small>Comprobación de salud del servidor.</small></td><td>2131</td>
+<td>0,35</td><td>0,32</td><td>0,52</td><td>0,76</td><td>9,64</td><td>200: 2131</td></tr><tr><td><code>GET /</code><br><small>Un estudiante abre el juego (la página, comprimida con gzip).</small></td><td>2130</td>
+<td>0,44</td><td>0,41</td><td>0,68</td><td>1,00</td><td>4,25</td><td>200: 2130</td></tr><tr><td><code>HEAD /</code><br><small>Solo cabeceras, sin contenido.</small></td><td>56</td>
+<td>0,41</td><td>0,37</td><td>0,69</td><td>0,73</td><td>0,73</td><td>200: 56</td></tr><tr><td><code>GET /observabilidad</code><br><small>Panel de observabilidad en vivo.</small></td><td>56</td>
+<td>1,91</td><td>1,73</td><td>3,99</td><td>10,75</td><td>10,75</td><td>200: 56</td></tr><tr><td><code>POST /</code><br><small>Intento de enviar datos: debe rechazarse con 405.</small></td><td>56</td>
+<td>0,29</td><td>0,28</td><td>0,44</td><td>0,66</td><td>0,66</td><td>405: 56</td></tr><tr><td><code>GET otras</code><br><small>Ruta inexistente: debe responder 404 (se agrupa como &quot;otras&quot;).</small></td><td>56</td>
+<td>0,27</td><td>0,25</td><td>0,56</td><td>0,60</td><td>0,60</td><td>404: 56</td></tr><tr><td><code>GET /metrics</code><br><small>Lectura de métricas (como haría Prometheus).</small></td><td>22</td>
+<td>0,76</td><td>0,70</td><td>1,09</td><td>1,78</td><td>1,78</td><td>200: 22</td></tr>
+<tr><td><b>Total</b></td><td><b>4507</b></td><td><b>0,41</b></td><td><b>0,36</b></td><td><b>0,66</b></td><td><b>1,64</b></td><td><b>10,75</b></td><td></td></tr></table></div>
+<p><b>Qué quiere decir:</b> el 95 % de las peticiones se procesó en menos de <b>0,66 ms</b>. Las respuestas 404 y 405 son <b>correctas</b>: las provoca a propósito el "auditor" de k6 para comprobar que el servidor rechaza rutas inexistentes y métodos no permitidos. No hubo ningún 5xx.</p>
+<figure><figcaption>Peticiones por segundo (rampa de subida, meseta de 50 usuarios y bajada) · pico <b>64 peticiones/s</b></figcaption>
+<svg viewBox="0 0 760 170" role="img" aria-label="Peticiones por segundo (rampa de subida, meseta de 50 usuarios y bajada)"><line x1="40" y1="146" x2="750" y2="146" class="eje"/>
+<text x="4" y="18" class="lbl">70 peticiones/s</text><text x="4" y="144" class="lbl">0</text>
+<text x="40" y="164" class="lbl">0 s</text><text x="750" y="164" class="lbl" text-anchor="end">113 s</text>
+<polyline fill="none" stroke="#22d3ee" stroke-width="2" points="40.0,144.2 46.3,146.0 52.7,137.1 59.0,138.8 65.4,128.1 71.7,138.8 78.0,128.1 84.4,122.7 90.7,128.1 97.1,128.1 103.4,103.0 109.7,128.1 116.1,101.3 122.4,99.5 128.8,99.5 135.1,106.6 141.4,88.7 147.8,90.5 154.1,95.9 160.4,74.4 166.8,103.0 173.1,81.6 179.5,79.8 185.8,70.8 192.1,74.4 198.5,70.8 204.8,70.8 211.2,58.3 217.5,63.7 223.8,88.7 230.2,44.0 236.5,54.7 242.9,69.0 249.2,52.9 255.5,52.9 261.9,31.5 268.2,67.3 274.6,36.8 280.9,74.4 287.2,49.4 293.6,58.3 299.9,51.1 306.3,51.1 312.6,49.4 318.9,42.2 325.3,52.9 331.6,60.1 337.9,54.7 344.3,63.7 350.6,61.9 357.0,40.4 363.3,49.4 369.6,44.0 376.0,63.7 382.3,45.8 388.7,56.5 395.0,67.3 401.3,33.2 407.7,76.2 414.0,33.2 420.4,70.8 426.7,45.8 433.0,58.3 439.4,63.7 445.7,42.2 452.1,67.3 458.4,52.9 464.7,54.7 471.1,52.9 477.4,42.2 483.8,67.3 490.1,42.2 496.4,58.3 502.8,81.6 509.1,42.2 515.4,74.4 521.8,42.2 528.1,69.0 534.5,31.5 540.8,74.4 547.1,47.6 553.5,36.8 559.8,69.0 566.2,60.1 572.5,35.0 578.8,60.1 585.2,56.5 591.5,58.3 597.9,42.2 604.2,70.8 610.5,38.6 616.9,47.6 623.2,42.2 629.6,56.5 635.9,38.6 642.2,81.6 648.6,52.9 654.9,76.2 661.3,74.4 667.6,81.6 673.9,85.1 680.3,99.5 686.6,79.8 692.9,113.8 699.3,99.5 705.6,113.8 712.0,110.2 718.3,137.1 724.6,110.2 731.0,135.3 737.3,135.3 743.7,135.3 750.0,138.8"/></svg></figure>
+<figure><figcaption>Latencia p95 del servidor por segundo · pico <b>9,64 ms</b></figcaption>
+<svg viewBox="0 0 760 170" role="img" aria-label="Latencia p95 del servidor por segundo"><line x1="40" y1="146" x2="750" y2="146" class="eje"/>
+<text x="4" y="18" class="lbl">11 ms</text><text x="4" y="144" class="lbl">0</text>
+<text x="40" y="164" class="lbl">0 s</text><text x="750" y="164" class="lbl" text-anchor="end">113 s</text>
+<polyline fill="none" stroke="#f59e0b" stroke-width="2" points="40.0,31.5 46.3,146.0 52.7,124.8 59.0,134.3 65.4,135.6 71.7,134.7 78.0,110.4 84.4,134.8 90.7,135.2 97.1,132.3 103.4,136.9 109.7,135.1 116.1,135.8 122.4,134.8 128.8,136.6 135.1,135.5 141.4,136.8 147.8,136.5 154.1,134.1 160.4,137.7 166.8,137.5 173.1,137.3 179.5,136.6 185.8,138.0 192.1,138.6 198.5,135.6 204.8,139.0 211.2,138.9 217.5,138.7 223.8,138.0 230.2,137.3 236.5,139.4 242.9,138.5 249.2,136.4 255.5,136.5 261.9,138.2 268.2,138.4 274.6,138.9 280.9,131.7 287.2,138.2 293.6,138.5 299.9,139.3 306.3,136.5 312.6,138.3 318.9,137.8 325.3,138.8 331.6,137.6 337.9,139.5 344.3,137.3 350.6,138.5 357.0,131.2 363.3,137.8 369.6,138.9 376.0,140.6 382.3,139.2 388.7,140.2 395.0,139.6 401.3,137.0 407.7,138.7 414.0,139.3 420.4,137.6 426.7,138.9 433.0,140.0 439.4,136.2 445.7,137.9 452.1,139.0 458.4,139.3 464.7,139.7 471.1,140.0 477.4,139.1 483.8,140.1 490.1,138.6 496.4,138.1 502.8,139.1 509.1,140.3 515.4,140.2 521.8,139.3 528.1,139.4 534.5,138.5 540.8,140.3 547.1,139.5 553.5,140.3 559.8,139.4 566.2,140.0 572.5,140.4 578.8,140.2 585.2,139.5 591.5,139.3 597.9,139.9 604.2,139.4 610.5,139.7 616.9,140.8 623.2,138.5 629.6,141.1 635.9,140.4 642.2,140.2 648.6,140.2 654.9,140.1 661.3,140.5 667.6,140.7 673.9,139.3 680.3,139.8 686.6,134.4 692.9,140.3 699.3,138.6 705.6,141.2 712.0,140.2 718.3,133.1 724.6,138.0 731.0,141.4 737.3,117.6 743.7,141.5 750.0,124.3"/></svg></figure>
+<div class="tarjeta"><b>Traza más lenta de la prueba:</b> <code>GET /observabilidad</code> · 10,75 ms · request_id <code>adadad41-30e1-482d-8a1c-2956a9448f20</code> · trace_id <code>3f6544b0f14aa01ab5cb08f7f11a9d6b</code><br><small>Es la ruta que más trabajo hace: genera en el momento la página del panel con estadísticas (percentiles, memoria, event loop). Aun así tardó solo unos milisegundos. En New Relic se encontraría en Distributed tracing ordenando por duración.</small></div>
+
+<h3>Cliente (k6) frente a servidor (trazas)</h3>
+<div class="tw"><table><tr><th>Medida</th><th>p95</th><th>Qué incluye</th></tr>
+<tr><td>k6: carga del juego (<code>GET /</code>)</td><td>2,34 ms</td><td>Lo que espera el "navegador": red, transferencia de ~34 KB comprimidos y procesamiento.</td></tr>
+<tr><td>Traza del servidor <code>GET /</code></td><td>0,68 ms</td><td>Solo el procesamiento dentro del servidor.</td></tr></table></div>
+<p><b>Qué quiere decir:</b> la diferencia es el tiempo de red y de transferencia. Que el servidor tarde mucho menos que lo que ve el cliente confirma que el código no es el cuello de botella. Esta comparación entre la vista de fuera y la de dentro es justo lo que aporta la observabilidad.</p>
+
+<h2>4. Métricas</h2>
+<div class="tw"><table><tr><th>Métrica</th><th>Tipo</th><th>Unidad</th><th>Temporalidad</th><th>Envíos</th><th>Qué significa</th></tr><tr><td><code>http.server.request.duration</code></td><td>histogram</td><td>s</td>
+<td>DELTA</td><td>23</td><td>La misma medida, pero con el nombre estándar de OpenTelemetry (la genera la instrumentación HTTP automáticamente).</td></tr><tr><td><code>cybershield.eventloop.lag</code></td><td>gauge</td><td>ms</td>
+<td>—</td><td>25</td><td>Retardo medio del event loop de Node.js: cuánto tiempo estuvo el servidor ocupado sin poder atender. Sano por debajo de 50 ms.</td></tr><tr><td><code>cybershield.eventloop.lag.max</code></td><td>gauge</td><td>ms</td>
+<td>—</td><td>25</td><td>Retardo máximo del event loop en el periodo.</td></tr><tr><td><code>cybershield.memory.rss</code></td><td>gauge</td><td>By</td>
+<td>—</td><td>25</td><td>Memoria RAM que usa el servidor. Si creciera sin parar indicaría una fuga.</td></tr><tr><td><code>cybershield.http.in_flight</code></td><td>gauge</td><td>—</td>
+<td>—</td><td>25</td><td>Peticiones atendiéndose en ese instante.</td></tr><tr><td><code>cybershield.http.rate_limited</code></td><td>sum</td><td>—</td>
+<td>DELTA</td><td>25</td><td>Peticiones rechazadas por el limitador anti-DoS (429).</td></tr><tr><td><code>cybershield.http.server.duration</code></td><td>histogram</td><td>ms</td>
+<td>DELTA</td><td>23</td><td>Histograma con la duración de cada petición, por ruta, método y código de estado. Con él New Relic calcula percentiles (p50, p95, p99) y tasas de error.</td></tr></table></div>
+<p><small>New Relic recomienda temporalidad <b>DELTA</b> para OTLP: cada envío contiene lo ocurrido desde el anterior. Las métricas se enviaron cada 5 s durante la prueba.</small></p>
+
+<h2>5. Logs enlazados con las trazas (logs in context)</h2>
+<p>Se recibieron <b>4507 logs</b>: <b>INFO</b> 4395 · <b>WARN</b> 112. El <b>100 %</b> lleva el identificador de su traza, así que en New Relic, desde cualquier log, se puede saltar a la traza de esa petición con <i>Show in context</i>.</p>
+<div class="tarjeta"><b>Ejemplo real de log enlazado:</b><br>Log <b>WARN</b>: <i>"POST / → 405 en 0.33 ms"</i> · trace_id <code>754e03e9cf9c6963c56816ff4cc9948c</code><br>↳ Su traza: <code>POST /</code> · 0,66 ms · request_id <code>88716897-bc8f-44d9-ba36-db02982ec6fa</code></div>
+
+<h2>6. Verificación automática (11/11)</h2>
+<div class="tw"><table><tr><th></th><th>Comprobación</th></tr><tr><td class="ok">✔</td><td>llega la cabecera api-key (autenticación de New Relic)</td></tr><tr><td class="ok">✔</td><td>service.name = cybershield</td></tr><tr><td class="ok">✔</td><td>trazas con nombre por ruta (GET /, GET /health, POST /, GET otras…)</td></tr><tr><td class="ok">✔</td><td>cada traza lleva el X-Request-Id</td></tr><tr><td class="ok">✔</td><td>las 429 del limitador quedan como evento en la traza</td></tr><tr><td class="ok">✔</td><td>métrica de duración por ruta y estado</td></tr><tr><td class="ok">✔</td><td>métricas del event loop, memoria y peticiones en curso</td></tr><tr><td class="ok">✔</td><td>métrica del limitador (rate_limited)</td></tr><tr><td class="ok">✔</td><td>métricas con temporalidad DELTA (recomendada por New Relic)</td></tr><tr><td class="ok">✔</td><td>logs recibidos (WARN para 404/405/429)</td></tr><tr><td class="ok">✔</td><td>logs enlazados con su traza (logs in context)</td></tr></table></div><p><small>Se ejecuta con <code>npm run newrelic:verificar</code> y forma parte de la suite 03 de pruebas automáticas (GitHub Actions la ejecuta en cada push).</small></p>
+
+<h2>7. Cómo se vería en New Relic</h2>
+<p>Con una clave válida, los mismos datos aparecerían en <b>APM &amp; Services → cybershield</b>. El proyecto incluye un dashboard importable (<code>observabilidad/newrelic/dashboard-cybershield.json</code>, 11 gráficos). Con los datos de esta prueba, mostraría:</p>
+<div class="tw"><table><tr><th>Gráfico del dashboard</th><th>Consulta NRQL</th><th>Valor esperado con esta prueba</th></tr>
+<tr><td>Peticiones por minuto</td><td><code>SELECT rate(count(*), 1 minute) FROM Span WHERE service.name='cybershield'</code></td><td>≈ 2393 en la meseta</td></tr>
+<tr><td>Latencia p50/p95/p99</td><td><code>SELECT percentile(cybershield.http.server.duration, 50, 95, 99) FROM Metric</code></td><td>0,36 / 0,66 / 1,64 ms</td></tr>
+<tr><td>Errores 5xx</td><td><code>… filter(count(…), WHERE http.response.status_code >= 500) …</code></td><td>0 (0 %)</td></tr>
+<tr><td>Peticiones por ruta y estado</td><td><code>… FACET http.route, http.response.status_code</code></td><td>7 rutas (tabla de la sección 3)</td></tr>
+<tr><td>Logs por severidad</td><td><code>SELECT count(*) FROM Log FACET severity.text</code></td><td>INFO 4395 · WARN 112</td></tr></table></div>
+
+<h2>8. Problemas encontrados</h2>
+<ul>
+<li><b>Dos errores de integración, detectados y corregidos por la verificación antes de usar la cuenta:</b> en el SDK 3.x de OpenTelemetry los procesadores por lotes se construyen ahora con <code>{ exporter }</code>, y el paquete protobuf no exporta la constante de temporalidad. Sin la corrección, el servidor no habría arrancado en modo New Relic.</li>
+<li><b>Claves rechazadas por New Relic ("Forbidden" / "authentication required"):</b> ocurrió igual desde la nube y desde el PC del estudiante. Causas probables: la cuenta no tiene el correo verificado o tiene la ingesta desactivada, o la clave se copió incompleta. Para comprobarlo: <code>observabilidad\newrelic\diagnostico.bat</code> (prueba la clave en EE. UU. y Europa). Solución recomendada: copiar la clave desde el instalador guiado (<i>Add data → OpenTelemetry</i>) o crear una cuenta nueva.</li>
+</ul>
+
+<h2>9. Glosario</h2>
+<dl>
+<dt>Observabilidad</dt><dd>Capacidad de entender qué pasa dentro de una aplicación mientras funciona, a partir de sus trazas, métricas y logs.</dd>
+<dt>OpenTelemetry (OTel)</dt><dd>Estándar abierto para generar y enviar telemetría. Funciona con New Relic, Grafana, Datadog, Jaeger… cambiando solo el destino.</dd>
+<dt>OTLP</dt><dd>El protocolo de OpenTelemetry para enviar los datos (aquí, HTTP con JSON o protobuf).</dd>
+<dt>Traza (span)</dt><dd>El registro de una petición: nombre, inicio, duración, atributos y eventos. Se identifica con un <i>trace_id</i>.</dd>
+<dt>Logs in context</dt><dd>Logs que llevan el <i>trace_id</i> de la petición que los generó, para saltar del log a la traza y al revés.</dd>
+<dt>p50 / p95 / p99</dt><dd>Percentiles: el 50 %, el 95 % o el 99 % de las peticiones tardó menos que ese valor.</dd>
+<dt>Temporalidad DELTA</dt><dd>Cada envío de métricas contiene solo lo ocurrido desde el envío anterior (la que prefiere New Relic).</dd>
+<dt>NRQL</dt><dd>El lenguaje de consultas de New Relic, parecido a SQL, con el que se construyen gráficos y alertas.</dd>
+<dt>License key / User key</dt><dd>La License key (termina en NRAL) sirve para <b>enviar</b> datos; la User key (NRAK-…) sirve para <b>consultarlos</b> y gestionar dashboards.</dd>
+</dl>
+
+<h2>10. Cómo repetirlo en New Relic</h2>
+<ol><li>Comprobar la clave: <code>observabilidad\newrelic\diagnostico.bat</code>.</li><li>Ejecutar la prueba: <code>observabilidad\newrelic\ejecutar-newrelic.bat</code> (pide la License key).</li>
+<li>Ver en New Relic: <b>APM &amp; Services → cybershield</b>, <b>Traces</b> y <b>Logs</b>.</li><li>Importar el dashboard: <code>npm run newrelic:dashboard -- TU_ACCOUNT_ID</code> → Dashboards → Import dashboard.</li></ol>
+<p><small>Reproducir este informe sin cuenta: <code>node observabilidad/newrelic/prueba-k6-local.js</code> y después <code>node observabilidad/newrelic/informe.js</code>.</small></p>
+</main></body></html>
