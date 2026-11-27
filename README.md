@@ -1,5 +1,7 @@
 # CyberShield — Escape Room de Ciberseguridad + 27 pruebas de software
 
+[![Pruebas y cobertura](https://github.com/IBAGUE458/cybershield/actions/workflows/cobertura.yml/badge.svg?branch=main)](https://github.com/IBAGUE458/cybershield/actions/workflows/cobertura.yml) [![Coverage Status](https://coveralls.io/repos/github/IBAGUE458/cybershield/badge.svg?branch=main)](https://coveralls.io/github/IBAGUE458/cybershield?branch=main)
+
 ## Estructura
 
 ```
